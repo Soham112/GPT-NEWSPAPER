@@ -1,5 +1,7 @@
 
 let selectedLayout = 'layout_1.html'; // Default layout
+const backendPort = 8000;
+const backendBaseUrl = `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
 
 function selectLayout(event) {
     document.querySelectorAll('.layout-icon').forEach(icon => {
@@ -33,7 +35,7 @@ function produceNewspaper() {
         layout: selectedLayout
     };
 
-    fetch('http://localhost:8000/generate_newspaper', {
+    fetch(`${backendBaseUrl}/generate_newspaper`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

@@ -1,5 +1,30 @@
 # .gitignore
 
+# Virtual environments
+venv/
+.venv/
+env/
 .env
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Output files
 outputs/
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
