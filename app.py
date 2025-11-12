@@ -16,6 +16,10 @@ frontend_app = Flask(__name__, static_folder='frontend')
 def index():
     return send_from_directory('frontend', 'index.html')
 
+@frontend_app.route('/newspaper.html')
+def newspaper():
+    return send_from_directory('frontend', 'newspaper.html')
+
 @frontend_app.route('/<path:path>')
 def static_proxy(path):
     return send_from_directory('frontend', path)
@@ -23,6 +27,10 @@ def static_proxy(path):
 @frontend_app.route('/outputs/<path:path>')
 def serve_outputs(path):
     return send_from_directory('outputs', path)
+
+@frontend_app.route('/templates/<path:path>')
+def serve_templates(path):
+    return send_from_directory('backend/templates', path)
 
 
 def run_frontend():

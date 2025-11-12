@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLR8 Research Results</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+</head>
+<body>
+    <!-- Sticky Bar -->
+    <div class="sticky-bar">
+        <div class="flex items-center gap-md">
+            <h2 class="sticky-bar__title">XLR8 Research</h2>
+            <span id="topicBadge" class="chip"></span>
+        </div>
+        <div class="sticky-bar__actions">
+            <button id="copyJSONBtn" class="btn btn--ghost btn--small">Copy JSON</button>
+            <button id="copyMarkdownBtn" class="btn btn--ghost btn--small">Copy Markdown</button>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div class="container container--wide">
+        <div id="resultsContainer" class="results-grid">
+            <!-- Results will be injected here -->
+        </div>
+    </div>
+
+    <script src="static/scripts.js"></script>
+    <script>
+        // Initialize results page if data is available
+        const storedData = sessionStorage.getItem('xlr8ResearchData');
+        if (storedData) {
+            try {
+                const data = JSON.parse(storedData);
+                window.xlr8ResearchData = data;
+                renderResultsPage(data);
+            } catch (e) {
+                console.error('Failed to parse stored data:', e);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state__icon">⚠️</div>
+                        <h3 class="empty-state__title">Failed to load results</h3>
+                        <p class="muted">Please try again from the home page.</p>
+                    </div>
+                `;
+            }
+        } else {
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state__icon">📰</div>
+                    <h3 class="empty-state__title">No results available</h3>
+                    <p class="muted">Please start a search from the <a href="/" style="color: var(--brand);">home page</a>.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+

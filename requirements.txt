@@ -7,4 +7,6 @@ flask
 json5
 Flask-CORS
 langchain_openai
+langchain_groq
 python-dotenv
+boto3

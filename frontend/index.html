@@ -3,52 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Custom Newspaper</title>
+    <title>XLR8 Research - AI-Powered Research Agent</title>
     <link rel="stylesheet" href="static/styles.css">
     <link rel="icon" type="image/x-icon" href="static/favicon.ico">
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="header-content">
-                <h1>Gpt Newspaper</h1>
-            </div>
-            <p class="powered-by">Powered by <a href="https://tavily.com" target="_blank">Tavily</a></p>
-            <p class = "topics-interest">Type topics of interest and get your personalized newspaper</p>
-
+        <!-- Header -->
+        <header style="text-align: center; padding: var(--space-xl) 0;">
+            <h1 style="letter-spacing: -0.03em;">XLR8 Research</h1>
+            <p class="subtitle">Type any topic: finance, solar energy, powergrid, property tech, AI, etc.</p>
         </header>
 
+        <!-- Topic Selection -->
         <section class="topic-selection">
-            <form id="topicForm">
-                <div class="form-group" id="topicGroup1">
-                    <input class = "inputText" type="text" id="topic1" name="topic1" required>
-                    <span class="icon add-topic">---</span>
-                    <span class="icon remove-topic">-</span>
+            <div class="topic-input-group">
+                <input 
+                    type="text" 
+                    id="topicInput" 
+                    class="input topic-input" 
+                    placeholder="Enter a topic..."
+                    autocomplete="off"
+                >
+                <button 
+                    type="button" 
+                    id="addTopicBtn" 
+                    class="topic-add-btn"
+                    aria-label="Add topic"
+                >+</button>
+            </div>
+            
+            <!-- Topic Chips -->
+            <div id="topicChips" class="topic-input-group" style="margin-top: var(--space-sm);"></div>
+
+            <!-- Layout Selection -->
+            <div style="margin: var(--space-lg) 0;">
+                <p class="muted" style="margin-bottom: var(--space-sm);">Select newspaper layout</p>
+                <div class="pill-toggle" role="group" aria-label="Layout selection">
+                    <button 
+                        type="button" 
+                        class="pill-toggle__item pill-toggle__item--active" 
+                        data-layout="layout_1.html"
+                        aria-label="Layout 1"
+                    >Layout 1</button>
+                    <button 
+                        type="button" 
+                        class="pill-toggle__item" 
+                        data-layout="layout_2.html"
+                        aria-label="Layout 2"
+                    >Layout 2</button>
+                    <button 
+                        type="button" 
+                        class="pill-toggle__item" 
+                        data-layout="layout_3.html"
+                        aria-label="Layout 3"
+                    >Layout 3</button>
                 </div>
-            </form>
-    <p class = "layout">Select newspaper layout</p>
-    <div class="layouts">
-        <img src="static/layout_icons/layout_1.png" alt="Layout 1" class="layout-icon" data-layout="layout_1.html">
-        <img src="static/layout_icons/layout_2.png" alt="Layout 2" class="layout-icon" data-layout="layout_2.html">
-        <img src="static/layout_icons/layout_3.png" alt="Layout 3" class="layout-icon" data-layout="layout_3.html">
+            </div>
+
+            <!-- Primary CTA -->
+            <div style="text-align: center; margin: var(--space-xl) 0;">
+                <button 
+                    type="button" 
+                    id="produceNewspaper" 
+                    class="btn btn--primary"
+                    style="min-width: 200px;"
+                >
+                    Produce Newspaper
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="muted">Grounded summaries with live sources.</p>
+        </footer>
     </div>
 
-            <button type="button" id="produceNewspaper">Produce Newspaper</button>
-
-
-        </section>
-
-        <section id="loading" class="hidden">
-                <div class="spinner"></div>
-                <div id="loadingMessages"></div>
-        </section>
-
-
-
-        <section id="newspaper" class="hidden">
-            <!-- The newspaper articles will be populated here -->
-        </section>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loader hidden" role="status" aria-live="polite">
+        <div class="loader__ring" aria-hidden="true"></div>
+        <div class="loader__text" id="loadingText">Looking for news...</div>
     </div>
+
+    <!-- Toast for Errors -->
+    <div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
 
     <script src="static/scripts.js"></script>
 </body>
