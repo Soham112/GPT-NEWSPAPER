@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing Campaigns - Outreach Agent</title>
+    <link rel="stylesheet" href="static/outreach.css">
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+</head>
+<body>
+    <div class="outreach-container">
+        <!-- Header -->
+        <header class="outreach-header">
+            <h1>Marketing Campaigns</h1>
+            <a href="/" class="btn-back">← Back to Research</a>
+        </header>
+
+        <!-- KPI Tiles -->
+        <div class="kpis">
+            <div class="kpi">
+                <div class="kpi__label">LinkedIn Outreach</div>
+                <div class="kpi__value" id="kpi-linkedin">-</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__label">Email Campaigns</div>
+                <div class="kpi__value" id="kpi-email">-</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__label">Calls Placed</div>
+                <div class="kpi__value" id="kpi-calls">-</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi__label">HubSpot Activities</div>
+                <div class="kpi__value" id="kpi-hubspot">-</div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="outreach-main">
+            <!-- Recent Activity (Optional) -->
+            <div class="activity-section">
+                <h3>Recent Activity</h3>
+                <div id="activityList" class="activity-list">
+                    <p class="muted">No recent activity</p>
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="chat-panel">
+                <div class="chat" id="chatMessages">
+                    <div class="bubble bubble--meta">
+                        Welcome to Marketing Campaigns! Ask me about LinkedIn outreach, email campaigns, calls, or HubSpot activities.
+                    </div>
+                </div>
+
+                <!-- Composer -->
+                <div class="composer">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        class="composer__input" 
+                        placeholder="Ask about outreach metrics, compare channels, analyze engagement..."
+                        autocomplete="off"
+                    >
+                    <button 
+                        type="button" 
+                        id="sendButton" 
+                        class="composer__button"
+                        aria-label="Send message"
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/outreach.js"></script>
+</body>
+</html>
+

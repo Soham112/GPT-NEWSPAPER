@@ -1,13 +1,29 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
+from dotenv import load_dotenv
 from backend.langgraph_agent import MasterAgent
 from backend.cost_tracker import cost_tracker
 import uuid
 
+# Load environment variables BEFORE importing blueprint
+load_dotenv()
+
+from backend.outreach_agent_api import outreach_blueprint
+
 backend_app = Flask(__name__)
+CORS(backend_app)  # Enable CORS for all routes
+
+# Register Outreach Agent blueprint
+backend_app.register_blueprint(outreach_blueprint)
 
 @backend_app.route('/', methods=['GET'])
 def index():
     return jsonify({"status": "Running"}), 200
+
+@backend_app.route('/healthz', methods=['GET'])
+def healthz():
+    """Health check endpoint."""
+    return jsonify({"status": "healthy"}), 200
 
 @backend_app.route('/generate_newspaper', methods=['POST'])
 def generate_newspaper():

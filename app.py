@@ -20,6 +20,10 @@ def index():
 def newspaper():
     return send_from_directory('frontend', 'newspaper.html')
 
+@frontend_app.route('/outreach.html')
+def outreach():
+    return send_from_directory('frontend', 'outreach.html')
+
 @frontend_app.route('/<path:path>')
 def static_proxy(path):
     return send_from_directory('frontend', path)

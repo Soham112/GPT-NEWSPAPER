@@ -44,7 +44,7 @@ function initializeLandingPage() {
         });
     });
     
-    // Produce newspaper button
+    // Generate Response button
     if (produceBtn) {
         produceBtn.addEventListener('click', produceNewspaper);
     }
@@ -114,7 +114,7 @@ function renderTopicChips() {
     `).join('');
 }
 
-// Produce Newspaper
+// Generate Response
 function produceNewspaper() {
     if (topics.length === 0) {
         showToast('Please add at least one topic.', 'warning');
@@ -153,7 +153,7 @@ function produceNewspaper() {
         toggleLoading(false);
         if (produceBtn) {
             produceBtn.disabled = false;
-            produceBtn.textContent = 'Produce Newspaper';
+            produceBtn.textContent = 'Generate Response';
         }
         
         if (data.results && Array.isArray(data.results)) {
@@ -174,7 +174,7 @@ function produceNewspaper() {
         toggleLoading(false);
         if (produceBtn) {
             produceBtn.disabled = false;
-            produceBtn.textContent = 'Produce Newspaper';
+            produceBtn.textContent = 'Generate Response';
         }
         console.error('Error:', error);
         showToast(`Error: ${error.message}`, 'danger');

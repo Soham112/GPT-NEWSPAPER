@@ -32,6 +32,7 @@ https://github.com/assafelovic/gpt-newspaper/assets/91344214/7f265369-1293-4d95-
 - **Engaging Design**: Enjoy a visually appealing layout and design.
 - **Quality Assurance**: Rigorous editing ensures reliable and accurate news reporting.
 - **User-Friendly Interface**: Easy-to-use platform for setting preferences and receiving your newspaper.
+- **Outreach Agent**: Chat-like interface for outreach analytics powered by Amazon Bedrock Agent (LinkedIn, Email, Calls, HubSpot).
 
 ## 🛠️ How It Works
 
@@ -46,7 +47,10 @@ https://github.com/assafelovic/gpt-newspaper/assets/91344214/7f265369-1293-4d95-
 ### Prerequisites
 
 - Tavily API Key - [Sign Up](https://tavily.com/)
-- OpenAI API Key - [Sign Up](https://platform.openai.com/)
+- Groq API Key - [Sign Up](https://console.groq.com/) (for XLR8 Research)
+- AWS Account with Bedrock Access (for Outreach Agent)
+  - Bedrock Agent ID and Alias ID
+  - IAM permissions (see IAM Requirements below)
 
 ### Installation
 
@@ -54,11 +58,20 @@ https://github.com/assafelovic/gpt-newspaper/assets/91344214/7f265369-1293-4d95-
    ```sh
    git clone https://github.com/rotemweiss57/gpt-newspaper.git
     ```
-2. Export your API Keys
+2. Create `.env` file (copy from `.env.example`):
    ```sh
-    export TAVILY_API_KEY=<YOUR_TAVILY_API_KEY>
-    export OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
-    ```
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and add your API keys:
+   ```sh
+   GROQ_API_KEY=your_groq_api_key
+   TAVILY_API_KEY=your_tavily_api_key
+   AWS_REGION=us-east-1
+   BEDROCK_OUTREACH_AGENT_ID=your_agent_id
+   BEDROCK_OUTREACH_ALIAS=your_alias_id
+   USE_STREAMING=false
+   ```
 3. Install Requirements
    ```sh
    pip install -r requirements.txt
@@ -69,6 +82,65 @@ https://github.com/assafelovic/gpt-newspaper/assets/91344214/7f265369-1293-4d95-
     ```
 5. Open the app in your browser
    ```sh
-    http://localhost:5000/
+    http://localhost:3000/
     ```
 6. Enjoy!
+
+## 📊 Outreach Agent
+
+The Outreach Agent provides a chat-like interface for analyzing outreach metrics across LinkedIn, Email, Calls, and HubSpot activities. It's powered by Amazon Bedrock Agent and provides real-time insights with KPI tracking.
+
+### Features
+
+- **Chat Interface**: Natural language queries about outreach performance
+- **KPI Dashboard**: Real-time tracking of LinkedIn Outreach, Email Campaigns, Calls Placed, and HubSpot Activities
+- **Source Citations**: Transparent source references for all insights
+- **Session Management**: Maintains conversation context across queries
+
+### Access
+
+Navigate to the Outreach Agent from the main page by clicking the "Outreach Agent" button, or visit `/outreach.html` directly.
+
+### API Endpoints
+
+- `POST /api/outreach/ask` - Non-streaming query endpoint
+- `POST /api/outreach/ask/stream` - Streaming query endpoint (requires `USE_STREAMING=true`)
+- `GET /api/outreach/healthz` - Health check endpoint
+
+### IAM Requirements
+
+The AWS IAM role/user running the application needs the following permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeAgent"
+      ],
+      "Resource": "arn:aws:bedrock:*:*:agent/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel"
+      ],
+      "Resource": "arn:aws:bedrock:*:*:foundation-model/*"
+    }
+  ]
+}
+```
+
+**Note**: The Bedrock Agent itself may have additional permissions configured (e.g., S3 access for knowledge base) through its execution role. These are managed separately in the Bedrock Agent configuration.
+
+### Response Format
+
+The Outreach Agent follows a structured response format:
+
+1. **Insights**: 3-6 bullet points with key findings
+2. **KPIs Line** (optional): `KPIs: LinkedIn: <n> | Email: <n> | Calls: <n> | HubSpot: <n>`
+3. **Sources Line**: `Sources: <id1>, <id2>, <id3>`
+
+The frontend automatically parses and displays KPIs in the dashboard and sources as chips.

@@ -3,10 +3,10 @@ langgraph
 tavily-python
 BeautifulSoup4
 openai
-flask
+flask==3.*
 json5
-Flask-CORS
+Flask-CORS==4.*
 langchain_openai
 langchain_groq
-python-dotenv
-boto3
+python-dotenv==1.*
+boto3==1.*
