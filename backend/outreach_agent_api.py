@@ -1,50 +1,172 @@
 """
-Outreach Agent API - Amazon Bedrock Agent Integration
-Provides endpoints for interacting with Bedrock Agent for outreach analytics.
+Outreach Agent API - RAG System Integration
+Provides endpoints for interacting with RAG system for outreach analytics.
+Uses FAISS vector store + Groq LLM instead of Amazon Bedrock Agent.
 """
 import os
 import json
-import base64
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 from dotenv import load_dotenv
-import boto3
-from botocore.exceptions import ClientError
+from backend.s3_data_loader import get_all_clients, get_client_data, get_client_metrics
+from backend.rag.search import RAGSearch
 
 # Load environment variables
 load_dotenv()
 
 outreach_blueprint = Blueprint('outreach', __name__, url_prefix='/api/outreach')
 
-# AWS Configuration
-AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
-BEDROCK_OUTREACH_AGENT_ID = os.getenv('BEDROCK_OUTREACH_AGENT_ID')
-BEDROCK_OUTREACH_ALIAS = os.getenv('BEDROCK_OUTREACH_ALIAS', 'TSTALIASID')
+# RAG System Configuration
 USE_STREAMING = os.getenv('USE_STREAMING', 'false').lower() == 'true'
+FAISS_PERSIST_DIR = os.getenv('FAISS_PERSIST_DIR', 'faiss_store')
+KB_FILES = ['kb_outreach_activities.jsonl']  # Knowledge base files from S3
 
-# Initialize Bedrock Agent Runtime client
-bedrock_agent_runtime = None
+# Initialize RAG Search system (lazy loading)
+rag_search = None
 
-def get_bedrock_client():
-    """Get or create Bedrock Agent Runtime client."""
-    global bedrock_agent_runtime
-    if bedrock_agent_runtime is None:
-        bedrock_agent_runtime = boto3.client(
-            'bedrock-agent-runtime',
-            region_name=AWS_REGION
+def get_rag_search():
+    """Get or create RAG Search instance."""
+    global rag_search
+    if rag_search is None:
+        print("[INFO] Initializing RAG Search system...")
+        rag_search = RAGSearch(
+            persist_dir=FAISS_PERSIST_DIR,
+            embedding_model="all-MiniLM-L6-v2",
+            kb_files=KB_FILES
         )
-    return bedrock_agent_runtime
+    return rag_search
 
 
 @outreach_blueprint.route('/healthz', methods=['GET'])
 def healthz():
     """Health check endpoint."""
-    return jsonify({"status": "healthy", "service": "outreach-agent"}), 200
+    return jsonify({"status": "healthy", "service": "outreach-agent-rag"}), 200
+
+
+@outreach_blueprint.route('/rebuild-index', methods=['POST'])
+def rebuild_index():
+    """
+    Rebuild the FAISS vector store index from S3 knowledge base files.
+    Useful when knowledge base is updated.
+    
+    Request body (optional):
+    {
+        "kb_files": ["kb_outreach_activities.jsonl", "kb_client_metric_summaries.jsonl"]
+    }
+    
+    Response:
+    {
+        "status": "success",
+        "message": "Vector store rebuilt successfully",
+        "documents_loaded": 123
+    }
+    """
+    try:
+        data = request.get_json(force=True) or {}
+        kb_files = data.get('kb_files', KB_FILES)
+        
+        print(f"[INFO] Rebuilding vector store with files: {kb_files}")
+        rag = get_rag_search()
+        
+        # Rebuild index
+        from backend.rag.data_loader import load_all_documents
+        docs = load_all_documents(kb_files)
+        
+        if docs:
+            rag.rebuild_index(kb_files)
+            return jsonify({
+                "status": "success",
+                "message": "Vector store rebuilt successfully",
+                "documents_loaded": len(docs),
+                "kb_files": kb_files
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "No documents loaded from S3",
+                "kb_files": kb_files
+            }), 400
+            
+    except Exception as e:
+        print(f"[ERROR] Failed to rebuild index: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@outreach_blueprint.route('/clients', methods=['GET'])
+def get_clients():
+    """
+    Get list of all available clients.
+    
+    Response:
+    {
+        "clients": [
+            {"company_id": "C001", "name": "TechCorp Inc.", ...},
+            ...
+        ]
+    }
+    """
+    try:
+        clients = get_all_clients()
+        return jsonify({"clients": clients}), 200
+    except Exception as e:
+        print(f"Error fetching clients: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@outreach_blueprint.route('/clients/<client_id>', methods=['GET'])
+def get_client(client_id):
+    """
+    Get all data for a specific client with optional filters.
+    
+    Query parameters:
+    - channel: Filter activities by channel (Email, LinkedIn, Call, HubSpot)
+    - status: Filter activities by status (Success, Pending, Failed)
+    - days: Filter activities by last N days (7, 30, etc.)
+    
+    Response:
+    {
+        "client_id": "C001",
+        "metrics": {...},
+        "activities": [...],
+        "contacts": [...],
+        "campaigns": [...],
+        "summary": {...},
+        "top_contacts": [...]
+    }
+    """
+    try:
+        # Parse filters from query parameters
+        filters = {}
+        channel = request.args.get('channel')
+        status = request.args.get('status')
+        days = request.args.get('days', type=int)
+        
+        if channel:
+            filters['channel'] = channel
+        if status:
+            filters['status'] = status
+        if days:
+            filters['days'] = days
+        
+        data = get_client_data(client_id, filters=filters if filters else None)
+        if not data.get('metrics'):
+            return jsonify({"error": f"Client {client_id} not found"}), 404
+        return jsonify(data), 200
+    except Exception as e:
+        print(f"Error fetching client data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @outreach_blueprint.route('/ask', methods=['POST'])
 def ask():
     """
-    Non-streaming endpoint for Bedrock Agent queries.
+    Non-streaming endpoint for RAG system queries.
     
     Request body:
     {
@@ -66,99 +188,20 @@ def ask():
         if not prompt:
             return jsonify({"error": "prompt is required"}), 400
         
-        if not BEDROCK_OUTREACH_AGENT_ID:
-            return jsonify({"error": "BEDROCK_OUTREACH_AGENT_ID not configured"}), 500
+        # Get RAG search instance
+        rag = get_rag_search()
         
-        client = get_bedrock_client()
-        
-        # Invoke Bedrock Agent - returns an event stream
-        response = client.invoke_agent(
-            agentId=BEDROCK_OUTREACH_AGENT_ID,
-            agentAliasId=BEDROCK_OUTREACH_ALIAS,
-            sessionId=session_id,
-            inputText=prompt
-        )
-        
-        # Collect response chunks from event stream
-        # invoke_agent returns a dict with 'completion' key containing an iterable event stream
-        text_parts = []
-        event_count = 0
-        
-        try:
-            # The 'completion' is an iterable event stream
-            completion_stream = response.get('completion', [])
-            print(f"DEBUG: Starting to process event stream. Type: {type(completion_stream)}")
-            
-            for event in completion_stream:
-                event_count += 1
-                event_keys = list(event.keys()) if isinstance(event, dict) else []
-                print(f"DEBUG: Event {event_count} - Keys: {event_keys}")
-                
-                # Check for chunk event
-                if 'chunk' in event:
-                    chunk_data = event['chunk']
-                    chunk_bytes = chunk_data.get('bytes') if isinstance(chunk_data, dict) else None
-                    if chunk_bytes:
-                        try:
-                            # The bytes field is already a bytes object, not base64-encoded
-                            if isinstance(chunk_bytes, bytes):
-                                chunk_text = chunk_bytes.decode('utf-8')
-                            elif isinstance(chunk_bytes, str):
-                                # If it's a string, try base64 decode (with padding fix)
-                                missing_padding = len(chunk_bytes) % 4
-                                if missing_padding:
-                                    chunk_bytes += '=' * (4 - missing_padding)
-                                decoded_bytes = base64.b64decode(chunk_bytes)
-                                chunk_text = decoded_bytes.decode('utf-8')
-                            else:
-                                raise ValueError(f"Unexpected bytes type: {type(chunk_bytes)}")
-                            
-                            text_parts.append(chunk_text)
-                            print(f"DEBUG: Decoded chunk ({len(chunk_text)} chars): {chunk_text[:50]}...")
-                        except Exception as e:
-                            print(f"Error decoding chunk: {e}")
-                            print(f"  Chunk bytes type: {type(chunk_bytes)}, length: {len(chunk_bytes) if chunk_bytes else 0}")
-                            continue
-                    else:
-                        print(f"DEBUG: Chunk event has no 'bytes' field")
-                # Log other event types for debugging
-                elif 'trace' in event:
-                    trace_type = event.get('trace', {}).get('type', 'unknown') if isinstance(event.get('trace'), dict) else 'unknown'
-                    print(f"DEBUG: Trace event received: {trace_type}")
-                elif 'returnControl' in event:
-                    print(f"DEBUG: ReturnControl event received")
-                else:
-                    # Log unknown event types
-                    print(f"DEBUG: Unknown event type with keys: {event_keys}")
-        except Exception as e:
-            print(f"Error iterating event stream: {type(e).__name__}: {str(e)}")
-            import traceback
-            traceback.print_exc()
-        
-        full_text = ''.join(text_parts)
-        
-        # Log for debugging
-        print(f"DEBUG: Processed {event_count} events, extracted {len(text_parts)} chunks, total text length: {len(full_text)}")
-        if not full_text:
-            print(f"WARNING: Empty response from Bedrock Agent.")
-            print(f"Response type: {type(response)}, Response keys: {list(response.keys()) if isinstance(response, dict) else 'N/A'}")
-            print(f"Session ID: {session_id}, Prompt: {prompt[:50]}...")
+        # Search and generate response
+        print(f"[INFO] Processing query: {prompt[:50]}...")
+        response_text = rag.search_and_summarize(prompt, top_k=5)
         
         return jsonify({
             "session_id": session_id,
-            "text": full_text
+            "text": response_text
         }), 200
         
-    except ClientError as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-        error_msg = e.response.get('Error', {}).get('Message', str(e))
-        print(f"Bedrock ClientError: {error_code} - {error_msg}")
-        return jsonify({
-            "error": f"AWS Bedrock error: {error_code}",
-            "message": error_msg
-        }), 500
     except Exception as e:
-        print(f"Unexpected error in /ask: {type(e).__name__}: {str(e)}")
+        print(f"[ERROR] Unexpected error in /ask: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -167,7 +210,8 @@ def ask():
 @outreach_blueprint.route('/ask/stream', methods=['POST'])
 def ask_stream():
     """
-    Streaming endpoint for Bedrock Agent queries (Server-Sent Events).
+    Streaming endpoint for RAG system queries (Server-Sent Events).
+    Note: Groq doesn't support streaming in the same way, so we simulate it by chunking the response.
     
     Request body:
     {
@@ -188,34 +232,23 @@ def ask_stream():
         if not prompt:
             return jsonify({"error": "prompt is required"}), 400
         
-        if not BEDROCK_OUTREACH_AGENT_ID:
-            return jsonify({"error": "BEDROCK_OUTREACH_AGENT_ID not configured"}), 500
-        
-        client = get_bedrock_client()
-        
         def generate():
             try:
                 # Send session_id first
                 yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
                 
-                # Invoke Bedrock Agent
-                response = client.invoke_agent(
-                    agentId=BEDROCK_OUTREACH_AGENT_ID,
-                    agentAliasId=BEDROCK_OUTREACH_ALIAS,
-                    sessionId=session_id,
-                    inputText=prompt
-                )
+                # Get RAG search instance
+                rag = get_rag_search()
                 
-                # Stream chunks
-                for event in response.get('completion', []):
-                    if 'chunk' in event:
-                        chunk_bytes = event['chunk']['bytes']
-                        try:
-                            chunk_text = base64.b64decode(chunk_bytes).decode('utf-8')
-                            yield f"data: {json.dumps({'type': 'chunk', 'text': chunk_text})}\n\n"
-                        except Exception as e:
-                            # Handle decoding errors gracefully
-                            yield f"data: {json.dumps({'type': 'error', 'error': f'Decoding error: {str(e)}'})}\n\n"
+                # Generate response (non-streaming, but we'll chunk it for SSE)
+                print(f"[INFO] Processing streaming query: {prompt[:50]}...")
+                response_text = rag.search_and_summarize(prompt, top_k=5)
+                
+                # Simulate streaming by chunking the response
+                chunk_size = 20  # Characters per chunk
+                for i in range(0, len(response_text), chunk_size):
+                    chunk = response_text[i:i + chunk_size]
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': chunk})}\n\n"
                 
                 # Send completion
                 yield f"data: {json.dumps({'type': 'done'})}\n\n"
@@ -232,13 +265,9 @@ def ask_stream():
             }
         )
         
-    except ClientError as e:
-        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-        error_msg = e.response.get('Error', {}).get('Message', str(e))
-        return jsonify({
-            "error": f"AWS Bedrock error: {error_code}",
-            "message": error_msg
-        }), 500
     except Exception as e:
+        print(f"[ERROR] Unexpected error in /ask/stream: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 

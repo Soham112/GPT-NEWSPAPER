@@ -9,39 +9,166 @@
 </head>
 <body>
     <div class="outreach-container">
-        <!-- Header -->
-        <header class="outreach-header">
-            <h1>Marketing Campaigns</h1>
-            <a href="/" class="btn-back">← Back to Research</a>
-        </header>
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-header__title">
+                <h1 class="dashboard-title">Dashboard</h1>
+                <span class="dashboard-subtitle">Agency Dashboard</span>
+            </div>
+        </div>
+
+        <!-- Client Selection Card -->
+        <div class="client-selection-card">
+            <div class="client-selection-card__left">
+                <svg class="client-selection-card__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 5.83333C2.5 4.91286 3.24619 4.16667 4.16667 4.16667H15.8333C16.7538 4.16667 17.5 4.91286 17.5 5.83333V14.1667C17.5 15.0871 16.7538 15.8333 15.8333 15.8333H4.16667C3.24619 15.8333 2.5 15.0871 2.5 14.1667V5.83333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2.5 7.5H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6.66667 10.8333H13.3333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="client-selection-card__label-group">
+                    <label for="clientSelect" class="client-selection-card__label">Current Client</label>
+                    <select id="clientSelect" class="client-select">
+                        <option value="">Select a client...</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-add-client" id="addClientBtn">
+                + Add Client
+            </button>
+        </div>
+
+        <!-- Company Dashboard Section -->
+        <div class="company-dashboard" id="companyDashboard" style="display: none;">
+            <div class="company-dashboard__accent"></div>
+            <div class="company-dashboard__content">
+                <h2 class="company-dashboard__title" id="companyDashboardTitle">Company Dashboard</h2>
+                <p class="company-dashboard__subtitle" id="companyDashboardSubtitle">Viewing outreach data for Company</p>
+            </div>
+        </div>
 
         <!-- KPI Tiles -->
         <div class="kpis">
-            <div class="kpi">
+            <div class="kpi kpi--clickable" data-kpi="linkedin">
                 <div class="kpi__label">LinkedIn Outreach</div>
                 <div class="kpi__value" id="kpi-linkedin">-</div>
+                <div class="kpi__trend" id="kpi-linkedin-trend"></div>
             </div>
-            <div class="kpi">
+            <div class="kpi kpi--clickable" data-kpi="email">
                 <div class="kpi__label">Email Campaigns</div>
                 <div class="kpi__value" id="kpi-email">-</div>
+                <div class="kpi__trend" id="kpi-email-trend"></div>
             </div>
-            <div class="kpi">
+            <div class="kpi kpi--clickable" data-kpi="calls">
                 <div class="kpi__label">Calls Placed</div>
                 <div class="kpi__value" id="kpi-calls">-</div>
+                <div class="kpi__trend" id="kpi-calls-trend"></div>
             </div>
-            <div class="kpi">
+            <div class="kpi kpi--clickable" data-kpi="hubspot">
                 <div class="kpi__label">HubSpot Activities</div>
                 <div class="kpi__value" id="kpi-hubspot">-</div>
+                <div class="kpi__trend" id="kpi-hubspot-trend"></div>
+            </div>
+        </div>
+
+        <!-- Client Summary Snapshot -->
+        <div class="client-summary" id="clientSummary" style="display: none;">
+            <h3 class="client-summary__title" id="clientSummaryTitle">Client at a glance:</h3>
+            <div class="client-summary__grid">
+                <div class="client-summary__item">
+                    <span class="client-summary__value" id="summary-decision-makers">-</span>
+                    <span class="client-summary__label">decision makers engaged</span>
+                </div>
+                <div class="client-summary__item">
+                    <span class="client-summary__value" id="summary-activities-week">-</span>
+                    <span class="client-summary__label">new activities this week</span>
+                </div>
+                <div class="client-summary__item">
+                    <span class="client-summary__value" id="summary-pending">-</span>
+                    <span class="client-summary__label">pending follow-ups</span>
+                </div>
+                <div class="client-summary__item">
+                    <span class="client-summary__value" id="summary-revived">-</span>
+                    <span class="client-summary__label">cold leads revived</span>
+                </div>
+                <div class="client-summary__item client-summary__item--score">
+                    <span class="client-summary__label">Engagement Score:</span>
+                    <span class="client-summary__value" id="summary-score">-</span>
+                    <span class="client-summary__label">/ 100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Contacts Section -->
+        <div class="top-contacts" id="topContacts" style="display: none;">
+            <div class="top-contacts__header">
+                <h3 class="top-contacts__title">Top Contacts Engaged</h3>
+                <a href="/contacts.html" class="btn btn--ghost btn--small" id="viewAllContactsBtn" style="display: none;">View All Contacts →</a>
+            </div>
+            <div class="top-contacts__list" id="topContactsList"></div>
+        </div>
+
+        <!-- Contacts Table Section -->
+        <div class="contacts-table-section" id="contactsTableSection" style="display: none;">
+            <div class="contacts-table-section__header">
+                <h3 class="contacts-table-section__title">Contacts</h3>
+                <a href="/contacts.html" class="btn btn--primary btn--small">View All Contacts →</a>
+            </div>
+            <div class="contacts-table-container">
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selectAllContacts" aria-label="Select all contacts">
+                            </th>
+                            <th class="contacts-table__sortable">
+                                Name
+                                <span class="sort-indicator">▲</span>
+                            </th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>Channels</th>
+                            <th>Last Contacted</th>
+                            <th style="width: 40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                        <tr>
+                            <td colspan="7" class="contacts-table__empty">Loading contacts...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <!-- Main Content Area -->
         <div class="outreach-main">
-            <!-- Recent Activity (Optional) -->
+            <!-- Recent Activity -->
             <div class="activity-section">
-                <h3>Recent Activity</h3>
-                <div id="activityList" class="activity-list">
-                    <p class="muted">No recent activity</p>
+                <div class="activity-section__header">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-filters">
+                        <div class="filter-group">
+                            <button class="filter-btn filter-btn--active" data-filter="channel" data-value="">All</button>
+                            <button class="filter-btn" data-filter="channel" data-value="Call">Calls</button>
+                            <button class="filter-btn" data-filter="channel" data-value="Email">Emails</button>
+                            <button class="filter-btn" data-filter="channel" data-value="LinkedIn">LinkedIn</button>
+                            <button class="filter-btn" data-filter="channel" data-value="HubSpot">HubSpot</button>
+                        </div>
+                        <div class="filter-group">
+                            <button class="filter-btn filter-btn--active" data-filter="status" data-value="">All</button>
+                            <button class="filter-btn" data-filter="status" data-value="Success">Success</button>
+                            <button class="filter-btn" data-filter="status" data-value="Pending">Pending</button>
+                            <button class="filter-btn" data-filter="status" data-value="Failed">Failed</button>
+                        </div>
+                        <div class="filter-group">
+                            <button class="filter-btn filter-btn--active" data-filter="days" data-value="">All Time</button>
+                            <button class="filter-btn" data-filter="days" data-value="7">Last 7 days</button>
+                            <button class="filter-btn" data-filter="days" data-value="30">Last 30 days</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="activityList" class="activity-list activity-list--timeline">
+                    <p class="muted">Select a client to view activities</p>
                 </div>
             </div>
 
@@ -72,6 +199,18 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- KPI Modal -->
+    <div id="kpiModal" class="modal" style="display: none;">
+        <div class="modal__overlay"></div>
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title" id="modalTitle">KPI Details</h3>
+                <button class="modal__close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal__body" id="modalBody"></div>
         </div>
     </div>
 

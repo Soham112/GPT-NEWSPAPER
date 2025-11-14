@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacts - Outreach Agent</title>
+    <link rel="stylesheet" href="static/outreach.css">
+    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+</head>
+<body>
+    <div class="outreach-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-header__title">
+                <h1 class="dashboard-title">Contacts</h1>
+                <span class="dashboard-subtitle">Manage your outreach contacts</span>
+            </div>
+        </div>
+
+        <!-- Client Selection Card -->
+        <div class="client-selection-card">
+            <div class="client-selection-card__left">
+                <svg class="client-selection-card__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 5.83333C2.5 4.91286 3.24619 4.16667 4.16667 4.16667H15.8333C16.7538 4.16667 17.5 4.91286 17.5 5.83333V14.1667C17.5 15.0871 16.7538 15.8333 15.8333 15.8333H4.16667C3.24619 15.8333 2.5 15.0871 2.5 14.1667V5.83333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2.5 7.5H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M6.66667 10.8333H13.3333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="client-selection-card__label-group">
+                    <label for="clientSelect" class="client-selection-card__label">Current Client</label>
+                    <select id="clientSelect" class="client-select">
+                        <option value="">Select a client...</option>
+                    </select>
+                </div>
+            </div>
+            <a href="/outreach.html" class="btn-add-client">← Back to Dashboard</a>
+        </div>
+
+        <!-- Company Dashboard Section -->
+        <div class="company-dashboard" id="companyDashboard" style="display: none;">
+            <div class="company-dashboard__accent"></div>
+            <div class="company-dashboard__content">
+                <h2 class="company-dashboard__title" id="companyDashboardTitle">Company Contacts</h2>
+                <p class="company-dashboard__subtitle" id="companyDashboardSubtitle">Viewing contacts for Company</p>
+            </div>
+        </div>
+
+        <!-- Contacts Table Section -->
+        <div class="contacts-table-section" id="contactsTableSection" style="display: none;">
+            <div class="contacts-table-section__header">
+                <h3 class="contacts-table-section__title">All Contacts</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="contactsSearch" class="input" placeholder="Search contacts..." style="min-width: 200px;">
+                </div>
+            </div>
+            <div class="contacts-table-container">
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selectAllContacts" aria-label="Select all contacts">
+                            </th>
+                            <th class="contacts-table__sortable" data-sort="name">
+                                Name
+                                <span class="sort-indicator">▲</span>
+                            </th>
+                            <th class="contacts-table__sortable" data-sort="company">Company</th>
+                            <th class="contacts-table__sortable" data-sort="status">Status</th>
+                            <th>Channels</th>
+                            <th class="contacts-table__sortable" data-sort="last_contacted">Last Contacted</th>
+                            <th style="width: 40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTableBody">
+                        <tr>
+                            <td colspan="7" class="contacts-table__empty">Select a client to view contacts</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/outreach.js"></script>
+    <script>
+        // Initialize contacts page
+        document.addEventListener('DOMContentLoaded', () => {
+            const clientSelect = document.getElementById('clientSelect');
+            const contactsSearch = document.getElementById('contactsSearch');
+            const selectAllCheckbox = document.getElementById('selectAllContacts');
+            
+            let allContacts = [];
+            let filteredContacts = [];
+            let currentSort = { field: 'name', direction: 'asc' };
+            
+            // Load clients
+            if (clientSelect) {
+                fetch(`${window.location.protocol}//${window.location.hostname}:8000/api/outreach/clients`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.clients && data.clients.length > 0) {
+                            data.clients.forEach(client => {
+                                const option = document.createElement('option');
+                                option.value = client.company_id;
+                                option.textContent = `${client.name} (${client.company_id})`;
+                                option.dataset.clientName = client.name;
+                                clientSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Error loading clients:', error));
+                
+                clientSelect.addEventListener('change', handleClientChange);
+            }
+            
+            // Search functionality
+            if (contactsSearch) {
+                contactsSearch.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (query) {
+                        filteredContacts = allContacts.filter(contact => {
+                            const name = (contact.name || '').toLowerCase();
+                            const title = (contact.title || '').toLowerCase();
+                            const company = (contact.company_id || '').toLowerCase();
+                            return name.includes(query) || title.includes(query) || company.includes(query);
+                        });
+                    } else {
+                        filteredContacts = [...allContacts];
+                    }
+                    renderContactsTable(filteredContacts);
+                });
+            }
+            
+            // Sort functionality
+            document.querySelectorAll('.contacts-table__sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const field = header.dataset.sort;
+                    if (currentSort.field === field) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.field = field;
+                        currentSort.direction = 'asc';
+                    }
+                    
+                    // Update sort indicators
+                    document.querySelectorAll('.sort-indicator').forEach(ind => {
+                        ind.textContent = '▲';
+                        ind.style.opacity = '0.3';
+                    });
+                    const indicator = header.querySelector('.sort-indicator');
+                    if (indicator) {
+                        indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+                        indicator.style.opacity = '1';
+                    }
+                    
+                    sortContacts();
+                });
+            });
+            
+            // Select all checkbox
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', (e) => {
+                    const checked = e.target.checked;
+                    document.querySelectorAll('.contact-row__checkbox').forEach(cb => {
+                        cb.checked = checked;
+                    });
+                });
+            }
+            
+            function handleClientChange(event) {
+                const clientId = event.target.value;
+                const selectedOption = event.target.options[event.target.selectedIndex];
+                const clientName = selectedOption.dataset.clientName || selectedOption.textContent.split(' (')[0];
+                
+                if (!clientId) {
+                    document.getElementById('contactsTableSection').style.display = 'none';
+                    document.getElementById('companyDashboard').style.display = 'none';
+                    return;
+                }
+                
+                // Show company dashboard
+                const companyDashboard = document.getElementById('companyDashboard');
+                const titleElement = document.getElementById('companyDashboardTitle');
+                const subtitleElement = document.getElementById('companyDashboardSubtitle');
+                if (companyDashboard && titleElement && subtitleElement) {
+                    titleElement.textContent = `${clientName} Contacts`;
+                    subtitleElement.textContent = `Viewing contacts for ${clientName}`;
+                    companyDashboard.style.display = 'flex';
+                }
+                
+                // Load contacts
+                fetch(`${window.location.protocol}//${window.location.hostname}:8000/api/outreach/clients/${clientId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error:', data.error);
+                            return;
+                        }
+                        
+                        allContacts = data.contacts_with_details || [];
+                        filteredContacts = [...allContacts];
+                        sortContacts();
+                        renderContactsTable(filteredContacts);
+                        
+                        document.getElementById('contactsTableSection').style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error loading contacts:', error);
+                    });
+            }
+            
+            function sortContacts() {
+                filteredContacts.sort((a, b) => {
+                    let aVal, bVal;
+                    
+                    switch (currentSort.field) {
+                        case 'name':
+                            aVal = (a.name || '').toLowerCase();
+                            bVal = (b.name || '').toLowerCase();
+                            break;
+                        case 'company':
+                            aVal = (a.company_id || '').toLowerCase();
+                            bVal = (b.company_id || '').toLowerCase();
+                            break;
+                        case 'status':
+                            aVal = (a.status || '').toLowerCase();
+                            bVal = (b.status || '').toLowerCase();
+                            break;
+                        case 'last_contacted':
+                            aVal = a.last_contacted || '';
+                            bVal = b.last_contacted || '';
+                            break;
+                        default:
+                            return 0;
+                    }
+                    
+                    if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            function renderContactsTable(contacts) {
+                const tbody = document.getElementById('contactsTableBody');
+                if (!tbody) return;
+                
+                if (contacts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="contacts-table__empty">No contacts found</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = contacts.map(contact => {
+                    const status = contact.status || 'Not Started';
+                    const statusClass = `contact-status--${status.toLowerCase().replace(' ', '-')}`;
+                    const channels = contact.channels || [];
+                    const lastContacted = formatLastContacted(contact.last_contacted);
+                    
+                    const channelsHTML = channels.length > 0 
+                        ? channels.map(channel => {
+                            const channelLower = channel.toLowerCase();
+                            let channelClass = 'channel-badge';
+                            let channelLabel = channel;
+                            let channelIcon = '';
+                            
+                            if (channelLower.includes('linkedin')) {
+                                channelClass += ' channel-badge--linkedin';
+                                channelLabel = 'LinkedIn';
+                                channelIcon = '<svg class="channel-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>';
+                            } else if (channelLower.includes('email')) {
+                                channelClass += ' channel-badge--email';
+                                channelLabel = 'Email';
+                                channelIcon = '<svg class="channel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
+                            } else if (channelLower.includes('call')) {
+                                channelClass += ' channel-badge--call';
+                                channelLabel = 'Call';
+                                channelIcon = '<svg class="channel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+                            } else if (channelLower.includes('hubspot')) {
+                                channelClass += ' channel-badge--hubspot';
+                                channelLabel = 'HubSpot';
+                            }
+                            
+                            return `<span class="${channelClass}">${channelIcon}${channelLabel}</span>`;
+                        }).join('')
+                        : '<span class="muted">None</span>';
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="contact-row__checkbox" data-contact-id="${escapeHtml(contact.contact_id)}">
+                            </td>
+                            <td>
+                                <div class="contact-row__name">${escapeHtml(contact.name)}</div>
+                                <div class="contact-row__title">${escapeHtml(contact.title || '')}</div>
+                            </td>
+                            <td class="contact-row__company">${escapeHtml(contact.company_id || '')}</td>
+                            <td>
+                                <span class="contact-status ${statusClass}">${escapeHtml(status)}</span>
+                            </td>
+                            <td>
+                                <div class="contact-channels">${channelsHTML}</div>
+                            </td>
+                            <td>
+                                <span class="contact-last-contacted ${lastContacted.never ? 'contact-last-contacted--never' : ''}">${escapeHtml(lastContacted.text)}</span>
+                            </td>
+                            <td>
+                                <button class="contact-row__menu-btn" aria-label="More options"></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            function formatLastContacted(isoString) {
+                if (!isoString) {
+                    return { text: 'Never', never: true };
+                }
+                
+                try {
+                    const date = new Date(isoString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) {
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        if (diffHours === 0) {
+                            const diffMins = Math.floor(diffMs / (1000 * 60));
+                            return { text: diffMins <= 1 ? 'Just now' : `${diffMins} minutes ago`, never: false };
+                        }
+                        return { text: diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`, never: false };
+                    } else if (diffDays === 1) {
+                        return { text: 'Yesterday', never: false };
+                    } else if (diffDays < 7) {
+                        return { text: `${diffDays} days ago`, never: false };
+                    } else if (diffDays < 30) {
+                        const weeks = Math.floor(diffDays / 7);
+                        return { text: `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`, never: false };
+                    } else {
+                        const months = Math.floor(diffDays / 30);
+                        return { text: `${months} ${months === 1 ? 'month' : 'months'} ago`, never: false };
+                    }
+                } catch (e) {
+                    return { text: 'Unknown', never: false };
+                }
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        });
+    </script>
+</body>
+</html>
+

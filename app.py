@@ -24,6 +24,10 @@ def newspaper():
 def outreach():
     return send_from_directory('frontend', 'outreach.html')
 
+@frontend_app.route('/contacts.html')
+def contacts():
+    return send_from_directory('frontend', 'contacts.html')
+
 @frontend_app.route('/<path:path>')
 def static_proxy(path):
     return send_from_directory('frontend', path)
