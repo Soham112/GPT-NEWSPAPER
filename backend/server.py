@@ -33,7 +33,8 @@ def generate_newspaper():
     """
     data = request.json or {}
     topics = data.get("topics", [])
-    layout = data.get("layout", "layout_1.html")
+    # Layout parameter is deprecated - using unified layout
+    layout = data.get("layout", "layout.html")  # Default to unified layout
     
     if not topics:
         return jsonify({"error": "topics array is required"}), 400
@@ -54,7 +55,7 @@ def generate_newspaper():
     return jsonify({
         "path": None,  # No longer generating HTML file
         "json": json_result,  # Include JSON for frontend rendering
-        "layout": layout
+        "layout": "layout.html"  # Always use unified layout
     }), 200
 
 @backend_app.route('/research/v1', methods=['POST'])
@@ -99,6 +100,8 @@ def research_v1():
         window = data.get("window", "week")
         k = int(data.get("k", 5))
         strict = data.get("strict", True)
+        client = data.get("client")  # Optional client metadata for ICP-aware insights
+        include_insights = data.get("include_insights", True)  # Default to True
         
         # Generate request ID for cost tracking
         request_id = str(uuid.uuid4())
@@ -112,6 +115,8 @@ def research_v1():
             window=window,
             k=k,
             strict=strict,
+            client=client,
+            include_insights=include_insights,
         )
         
         # Add request metadata

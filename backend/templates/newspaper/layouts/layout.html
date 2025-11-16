@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLR8 Research</title>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/chomsky');
+        @import url('https://db.onlinewebfonts.com/c/4c4a87973ef80fc72049e01b9085fadc?family=ABC+Diatype');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'ABCDiatype', serif;
+            color: #333;
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            padding: 2em 0;
+            color: #f2f2f2;
+            text-align: center;
+            font-family: 'Chomsky', serif;
+        }
+
+        header h1 {
+            font-size: 4em;
+            margin: 0 0 0.5em 0;
+            color: white;
+            font-weight: normal;
+        }
+
+        header h3 {
+            font-size: 1.5em;
+            margin: 0;
+            color: white;
+            font-weight: normal;
+        }
+
+        /* Content Area */
+        .content {
+            background-color: #f2f2f2;
+            border-radius: 10px;
+            padding: 2em;
+            margin-bottom: 2em;
+        }
+
+        /* Article Styles */
+        .article {
+            margin: 2em 0;
+            padding: 1.5em;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            break-inside: avoid;
+        }
+
+        .article:first-child {
+            margin-top: 0;
+        }
+
+        .article:last-child {
+            margin-bottom: 0;
+        }
+
+        .article a {
+            text-decoration: none;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+
+        .article a:hover {
+            color: #2c5364;
+            text-decoration: underline;
+        }
+
+        .article h2 {
+            font-size: 1.5em;
+            margin: 0 0 1em 0;
+            line-height: 1.3;
+        }
+
+        .article img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto 1em;
+        }
+
+        .article p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .article .source {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 0.5em;
+        }
+
+        /* Footer Styles */
+        footer {
+            color: white;
+            text-align: center;
+            padding: 2em 0;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.9em;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .content {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2em;
+            }
+
+            .article {
+                margin: 0;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>XLR8 Research</h1>
+            <h3>{{date}}</h3>
+        </header>
+
+        <div class="content">
+            {{articles}}
+        </div>
+
+        <footer>
+            <p>© 2023 XLR8 Research. All Rights Reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
+

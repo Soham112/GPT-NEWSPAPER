@@ -244,11 +244,16 @@ function sendMessageStream(prompt) {
 
 function renderResponse(text) {
     // Parse and render response
-    const { insights, kpis, sources } = parseResponse(text);
+    const { insights, kpis, sources, images } = parseResponse(text);
     
     // Create agent bubble with insights
     const bubbleId = addBubble('agent', insights);
     const bubbleElement = document.getElementById(bubbleId);
+    
+    // Add reference images if present
+    if (images && images.length > 0) {
+        addReferenceImages(bubbleElement, images);
+    }
     
     // Update KPIs if present
     if (kpis) {
@@ -263,13 +268,18 @@ function renderResponse(text) {
 
 function processResponse(text) {
     // Process final response after streaming
-    const { insights, kpis, sources } = parseResponse(text);
+    const { insights, kpis, sources, images } = parseResponse(text);
     const chatMessages = document.getElementById('chatMessages');
     const lastBubble = chatMessages.lastElementChild;
     
     if (lastBubble && lastBubble.classList.contains('bubble--agent')) {
         // Update existing bubble
         lastBubble.innerHTML = formatInsights(insights);
+        
+        // Add reference images if present
+        if (images && images.length > 0) {
+            addReferenceImages(lastBubble, images);
+        }
         
         // Update KPIs
         if (kpis) {
@@ -284,10 +294,11 @@ function processResponse(text) {
 }
 
 function parseResponse(text) {
-    // Parse response text to extract insights, KPIs, and sources
+    // Parse response text to extract insights, KPIs, sources, and images
     let insights = text;
     let kpis = null;
     let sources = [];
+    let images = [];
     
     // Extract KPIs line: "KPIs: LinkedIn: <n> | Email: <n> | Calls: <n> | HubSpot: <n>"
     const kpiMatch = text.match(/KPIs:\s*LinkedIn:\s*(\d+)\s*\|\s*Email:\s*(\d+)\s*\|\s*Calls:\s*(\d+)\s*\|\s*HubSpot:\s*(\d+)/i);
@@ -302,15 +313,45 @@ function parseResponse(text) {
         insights = text.replace(/KPIs:.*$/m, '').trim();
     }
     
-    // Extract Sources line: "Sources: <id1>, <id2>, <id3>"
+    // Extract Sources line: "Sources: <id1>, <id2>, <id3>" or JSON array
     const sourcesMatch = text.match(/Sources:\s*(.+)/i);
     if (sourcesMatch) {
-        sources = sourcesMatch[1].split(',').map(s => s.trim()).filter(s => s);
+        const sourcesText = sourcesMatch[1].trim();
+        // Try to parse as JSON first
+        try {
+            const parsed = JSON.parse(sourcesText);
+            if (Array.isArray(parsed)) {
+                sources = parsed;
+            } else {
+                sources = sourcesText.split(',').map(s => s.trim()).filter(s => s);
+            }
+        } catch (e) {
+            // Not JSON, parse as comma-separated
+            sources = sourcesText.split(',').map(s => s.trim()).filter(s => s);
+        }
         // Remove Sources line from insights
         insights = insights.replace(/Sources:.*$/m, '').trim();
     }
     
-    return { insights, kpis, sources };
+    // Extract Images line: "Images: <url1>, <url2>" or JSON array
+    const imagesMatch = text.match(/Images:\s*(.+)/i);
+    if (imagesMatch) {
+        const imagesText = imagesMatch[1].trim();
+        try {
+            const parsed = JSON.parse(imagesText);
+            if (Array.isArray(parsed)) {
+                images = parsed;
+            } else {
+                images = imagesText.split(',').map(s => s.trim()).filter(s => s);
+            }
+        } catch (e) {
+            images = imagesText.split(',').map(s => s.trim()).filter(s => s);
+        }
+        // Remove Images line from insights
+        insights = insights.replace(/Images:.*$/m, '').trim();
+    }
+    
+    return { insights, kpis, sources, images };
 }
 
 function formatInsights(text) {
@@ -423,18 +464,82 @@ function updateKPIs(kpis) {
     document.getElementById('kpi-hubspot').textContent = kpis.hubspot;
 }
 
-function addSources(bubbleElement, sources) {
-    const sourcesDiv = document.createElement('div');
-    sourcesDiv.className = 'sources';
-    
-    sources.forEach(source => {
-        const chip = document.createElement('span');
-        chip.className = 'source-chip';
-        chip.textContent = source;
-        sourcesDiv.appendChild(chip);
+function addReferenceImages(bubbleElement, images) {
+    // Add reference images before sources
+    images.forEach((image, index) => {
+        const imageUrl = typeof image === 'string' ? image : (image.url || image.src || image);
+        const caption = typeof image === 'object' ? (image.caption || image.title || '') : '';
+        const link = typeof image === 'object' ? (image.link || image.url || '') : '';
+        
+        if (!imageUrl) return;
+        
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'reference-image';
+        
+        imageContainer.innerHTML = `
+            <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption || 'Reference image')}" onerror="this.parentElement.style.display='none'">
+            ${caption || link ? `
+                <div class="reference-image__caption">
+                    ${caption ? `<div>${escapeHtml(caption)}</div>` : ''}
+                    ${link ? `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="reference-image__link">View source →</a>` : ''}
+                </div>
+            ` : ''}
+        `;
+        
+        bubbleElement.appendChild(imageContainer);
     });
+}
+
+function addSources(bubbleElement, sources) {
+    // Check if sources is an array of objects with image data, or just strings
+    const hasImageData = Array.isArray(sources) && sources.length > 0 && typeof sources[0] === 'object';
     
-    bubbleElement.appendChild(sourcesDiv);
+    if (hasImageData) {
+        // Render source cards with images (Perplexity style)
+        sources.forEach((source, index) => {
+            const sourceCard = document.createElement('div');
+            sourceCard.className = 'source-card';
+            
+            const imageUrl = source.image || source.image_url || source.thumbnail;
+            const title = source.title || source.name || `Source ${index + 1}`;
+            const url = source.url || source.link || '#';
+            let domain = source.domain || source.source_domain;
+            if (!domain && url && url !== '#') {
+                try {
+                    domain = new URL(url).hostname;
+                } catch (e) {
+                    domain = 'Unknown';
+                }
+            }
+            const snippet = source.snippet || source.description || '';
+            
+            sourceCard.innerHTML = `
+                ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="source-card__image" onerror="this.style.display='none'">` : ''}
+                <div class="source-card__content">
+                    <div class="source-card__title">
+                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)}</a>
+                    </div>
+                    ${domain ? `<div class="source-card__domain">${escapeHtml(domain)}</div>` : ''}
+                    ${snippet ? `<div class="source-card__snippet">${escapeHtml(snippet)}</div>` : ''}
+                </div>
+            `;
+            
+            bubbleElement.appendChild(sourceCard);
+        });
+    } else {
+        // Render simple source chips (original behavior)
+        const sourcesDiv = document.createElement('div');
+        sourcesDiv.className = 'sources';
+        
+        sources.forEach(source => {
+            const chip = document.createElement('span');
+            chip.className = 'source-chip';
+            chip.textContent = typeof source === 'string' ? source : (source.title || source.name || 'Source');
+            sourcesDiv.appendChild(chip);
+        });
+        
+        bubbleElement.appendChild(sourcesDiv);
+    }
 }
 
 function addBubble(type, content) {

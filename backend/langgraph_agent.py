@@ -16,6 +16,7 @@ from .agents import (
     WriterAgent,
 )
 from .agents.writer_json import WriterJSONAgent
+from .agents.insights import InsightsAgent
 # Caching removed per requirements
 from .cost_tracker import cost_tracker
 from .config import (
@@ -45,13 +46,14 @@ class MasterAgent:
         self.output_dir = f"outputs/run_{int(time.time())}"
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def run(self, queries: list, layout: str):
+    def run(self, queries: list, layout: str = None):
         # Initialize agents
         search_agent = SearchAgent()
         curator_agent = CuratorAgent()
         writer_agent = WriterAgent()
         critique_agent = CritiqueAgent()
         designer_agent = DesignerAgent(self.output_dir)
+        # Layout parameter is deprecated - EditorAgent now uses unified layout
         editor_agent = EditorAgent(layout)
         publisher_agent = PublisherAgent(self.output_dir)
 
@@ -100,6 +102,8 @@ class MasterAgent:
         window: str = "week",
         k: int = 5,
         strict: bool = True,
+        client: Dict[str, Any] = None,
+        include_insights: bool = True,
     ) -> Dict[str, Any]:
         """
         API-first method that returns JSON responses.
@@ -122,7 +126,7 @@ class MasterAgent:
             for topic in topics:
                 # Submit for processing (no caching)
                 future = executor.submit(
-                    self._process_topic_json, topic, domains, window, k, strict
+                    self._process_topic_json, topic, domains, window, k, strict, client, include_insights
                 )
                 futures.append((topic, future))
             
@@ -163,20 +167,29 @@ class MasterAgent:
         window: str = "week",
         k: int = 5,
         strict: bool = True,
+        client: Dict[str, Any] = None,
+        include_insights: bool = True,
     ) -> Dict[str, Any]:
         """Process a single topic and return JSON result."""
         # Initialize agents
         search_agent = SearchAgent()
         curator_agent = CuratorAgent()
         writer_agent = WriterJSONAgent()
+        insights_agent = InsightsAgent() if include_insights else None
         
         # Create simplified state
         article_state = {
             "query": topic,
+            "topic": topic,
             "domains": domains,
             "time_range": window,
             "k": k,
+            "sources": [],
         }
+        
+        # Add client metadata if provided
+        if client:
+            article_state["client"] = client
         
         # Step 1: Discover sources using XLR8 Research method
         sources = search_agent.discover_sources(topic, domains, window, n=10)
@@ -198,14 +211,16 @@ class MasterAgent:
         if len(sources) > k:
             article_state = curator_agent.run(article_state)
             sources = article_state.get("sources", [])[:k]  # Ensure we only keep k sources
+            article_state["sources"] = sources
         
         # Format sources for response
         formatted_sources = [
             {
                 "title": s.get("title", "No title"),
                 "url": s.get("url", ""),
-                "date": s.get("published_date", ""),
-                "snippet": s.get("content", s.get("snippet", ""))[:200],
+                "date": s.get("published_date", s.get("date", "")),
+                "snippet": s.get("content", s.get("snippet", s.get("description", "")))[:200],
+                "source_domain": s.get("url", "").split("/")[2] if s.get("url") else "",
             }
             for s in sources
         ]
@@ -219,6 +234,7 @@ class MasterAgent:
         why_it_matters = article_state.get("why_it_matters")
         tags = article_state.get("tags", {})
         links = article_state.get("links", [])
+        quality_check = article_state.get("quality_check", "PASS")
         
         # Check for errors
         error = article_state.get("error")
@@ -233,6 +249,44 @@ class MasterAgent:
                 }
             # Non-strict: return partial results
         
+        # Step 4: Generate insights (if enabled)
+        insights = None
+        if not include_insights:
+            print(f"[INFO] Insights generation disabled for topic '{topic}'")
+        elif not insights_agent:
+            print(f"[INFO] Insights agent not initialized for topic '{topic}'")
+        elif not bullets:
+            print(f"[WARNING] No bullets available for insights generation for topic '{topic}'")
+        else:
+            try:
+                print(f"[INFO] Generating insights for topic: '{topic}' (bullets: {len(bullets)})")
+                # Prepare article state for insights (include formatted sources)
+                article_state["sources"] = formatted_sources
+                article_state["bullets"] = bullets  # Ensure bullets are in article_state
+                article_state["headline"] = headline
+                article_state["why_it_matters"] = why_it_matters
+                article_state["tags"] = tags
+                article_state = insights_agent.run(article_state)
+                insights = article_state.get("insights")
+                
+                if insights:
+                    if insights.get("error"):
+                        print(f"[WARNING] Insights generation returned error for topic '{topic}': {insights.get('error')} - {insights.get('message', '')}")
+                    else:
+                        print(f"[INFO] Insights generated successfully for topic '{topic}'")
+                        print(f"[DEBUG] Insights keys: {list(insights.keys())}")
+                else:
+                    print(f"[WARNING] Insights generation returned None for topic '{topic}'")
+            except Exception as e:
+                print(f"[ERROR] Insights generation failed for topic '{topic}': {e}")
+                import traceback
+                traceback.print_exc()
+                # Set error insights so frontend can display it
+                insights = {
+                    "error": "INSIGHTS_GENERATION_ERROR",
+                    "message": str(e)
+                }
+        
         # Format summary bullets
         summary = [
             {
@@ -242,13 +296,25 @@ class MasterAgent:
             for bullet in bullets
         ]
         
-        # Return in the requested format
-        return {
+        # Build result
+        result = {
             "topic": topic,
             "sources": formatted_sources,
             "summary": summary,
+            "bullets": bullets,  # Also include as bullets for compatibility
             "links": links,
             "headline": headline,
             "why_it_matters": why_it_matters,
             "tags": tags,
+            "quality_check": quality_check,
         }
+        
+        # Add insights if generated (include even if error, so frontend can display it)
+        if insights is not None:
+            result["insights"] = insights
+            if insights.get("error"):
+                print(f"[INFO] Including insights with error in result for topic '{topic}'")
+            else:
+                print(f"[INFO] Including valid insights in result for topic '{topic}'")
+        
+        return result

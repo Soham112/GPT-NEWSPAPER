@@ -5,82 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XLR8 Research - AI-Powered Research Agent</title>
     <link rel="stylesheet" href="static/styles.css">
-    <link rel="icon" type="image/x-icon" href="static/favicon.ico">
 </head>
 <body>
-    <div class="container">
+    <div class="container" style="max-width: 100%; padding: 0;">
         <!-- Header -->
-        <header style="text-align: center; padding: var(--space-xl) 0;">
-            <h1 style="letter-spacing: -0.03em;">XLR8 Research</h1>
-            <p class="subtitle">Type any topic: finance, solar energy, powergrid, property tech, AI, etc.</p>
-            <div style="margin-top: var(--space-md);">
+        <header style="text-align: center; padding: var(--space-lg) var(--space-md); border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.1));">
+            <h1 style="letter-spacing: -0.03em; margin-bottom: var(--space-xs);">XLR8 Research</h1>
+            <div style="margin-top: var(--space-sm);">
                 <a href="/outreach.html" class="btn btn--ghost btn--small">Outreach Agent</a>
             </div>
         </header>
 
-        <!-- Topic Selection -->
-        <section class="topic-selection">
-            <div class="topic-input-group">
-                <input 
-                    type="text" 
-                    id="topicInput" 
-                    class="input topic-input" 
-                    placeholder="Enter a topic..."
-                    autocomplete="off"
-                >
-                <button 
-                    type="button" 
-                    id="addTopicBtn" 
-                    class="topic-add-btn"
-                    aria-label="Add topic"
-                >+</button>
-            </div>
-            
-            <!-- Topic Chips -->
-            <div id="topicChips" class="topic-input-group" style="margin-top: var(--space-sm);"></div>
-
-            <!-- Layout Selection -->
-            <div style="margin: var(--space-lg) 0;">
-                <p class="muted" style="margin-bottom: var(--space-sm);">Select newspaper layout</p>
-                <div class="pill-toggle" role="group" aria-label="Layout selection">
-                    <button 
-                        type="button" 
-                        class="pill-toggle__item pill-toggle__item--active" 
-                        data-layout="layout_1.html"
-                        aria-label="Layout 1"
-                    >Layout 1</button>
-                    <button 
-                        type="button" 
-                        class="pill-toggle__item" 
-                        data-layout="layout_2.html"
-                        aria-label="Layout 2"
-                    >Layout 2</button>
-                    <button 
-                        type="button" 
-                        class="pill-toggle__item" 
-                        data-layout="layout_3.html"
-                        aria-label="Layout 3"
-                    >Layout 3</button>
+        <!-- Chat Interface -->
+        <section class="chat-interface">
+            <!-- Initial State: Centered Input -->
+            <div id="initialState" class="initial-state">
+                <div class="initial-state__content">
+                    <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: var(--space-md); color: var(--text);">Ready when you are</h2>
+                    <div class="topic-input-group topic-input-group--centered">
+                        <button 
+                            type="button" 
+                            id="addTopicBtn" 
+                            class="topic-add-btn"
+                            aria-label="Add topic"
+                            style="pointer-events: none; opacity: 0.5;"
+                        >+</button>
+                        <input 
+                            type="text" 
+                            id="topicInput" 
+                            class="input topic-input topic-input--large" 
+                            placeholder="Ask anything"
+                            autocomplete="off"
+                        >
+                        <button 
+                            type="button" 
+                            id="produceNewspaper" 
+                            class="btn btn--primary"
+                            style="min-width: 100px;"
+                        >
+                            Search
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Primary CTA -->
-            <div style="text-align: center; margin: var(--space-xl) 0;">
-                <button 
-                    type="button" 
-                    id="produceNewspaper" 
-                    class="btn btn--primary"
-                    style="min-width: 200px;"
-                >
-                    Generate Response
-                </button>
+            <!-- Results Container (Hidden initially) -->
+            <div id="resultsContainer" class="chat-results hidden">
+                <!-- Results will be injected here -->
+            </div>
+
+            <!-- Input Area (Fixed at bottom, hidden initially) -->
+            <div id="chatInputContainer" class="chat-input-container hidden">
+                <div class="topic-input-group">
+                    <button 
+                        type="button" 
+                        id="addTopicBtnBottom" 
+                        class="topic-add-btn"
+                        aria-label="Add topic"
+                        style="pointer-events: none; opacity: 0.5;"
+                    >+</button>
+                    <input 
+                        type="text" 
+                        id="topicInputBottom" 
+                        class="input topic-input" 
+                        placeholder="Ask anything"
+                        autocomplete="off"
+                    >
+                    <button 
+                        type="button" 
+                        id="produceNewspaperBottom" 
+                        class="btn btn--primary"
+                        style="min-width: 80px;"
+                    >
+                        Search
+                    </button>
+                </div>
             </div>
         </section>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p class="muted">Grounded summaries with live sources.</p>
-        </footer>
     </div>
 
     <!-- Loading Overlay -->
