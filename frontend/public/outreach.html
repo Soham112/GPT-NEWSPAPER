@@ -7,13 +7,36 @@
     <link rel="stylesheet" href="static/outreach.css">
 </head>
 <body>
-    <div class="outreach-container">
-        <!-- Dashboard Header - Hidden on outreach page -->
-        <div class="dashboard-header" style="display: none;">
-            <div class="dashboard-header__title">
-                <h1 class="dashboard-title">Dashboard</h1>
-                <span class="dashboard-subtitle">Agency Dashboard</span>
+    <header class="platform-header">
+        <div class="platform-header__inner">
+            <a href="/" class="platform-header__logo">
+                <span class="platform-header__logo-mark">X</span>
+                <span class="platform-header__logo-text">
+                    <strong>XLR8</strong>
+                    <small>AI Workspace</small>
+                </span>
+            </a>
+            <nav class="platform-header__nav">
+                <a href="/">Home</a>
+                <a href="/research">Research Agent</a>
+                <a href="/outreach.html" class="active">Outreach Agent</a>
+                <a href="/integrations">Integrations</a>
+                <a href="/settings">Settings</a>
+            </nav>
+            <div class="platform-header__status">
+                <button class="platform-header__live">
+                    <span class="platform-header__live-dot"></span>
+                    Live
+                </button>
+                <div class="platform-header__avatar">SP</div>
             </div>
+        </div>
+    </header>
+    <div class="outreach-container">
+        <!-- Page Header -->
+        <div class="outreach-page-header">
+            <h1 class="outreach-page-header__title">Outreach Agent</h1>
+            <p class="outreach-page-header__subtitle">Marketing Campaigns Dashboard</p>
         </div>
 
         <!-- Client Selection Card -->
