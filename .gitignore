@@ -1,39 +1,48 @@
-# .gitignore
-
-# Virtual environments
+### Project-wide ignores
+# Python virtual environments
 venv/
 .venv/
 env/
-.env
 
-# Python cache
+# Python cache/artifacts
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# Output files
-outputs/
+# Node / Next.js artifacts
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Cache
+# Build outputs / caches
+outputs/
 cache/
+coverage/
 
 # Environment variables
 .env
 .env.local
 .env*.local
 
-# IDE
+# IDE / editor
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
+# OS junk
 .DS_Store
 Thumbs.db
 
-# Frontend / Next.js
+### Frontend-specific overrides
 frontend/node_modules/
 frontend/.next/
 frontend/out/
