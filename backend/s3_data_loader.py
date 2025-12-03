@@ -186,7 +186,8 @@ def get_client_activities(client_id: str, limit: int = 50, filters: Dict = None)
                 'campaign_id': act.get('campaign_id', ''),
                 'channel': act.get('channel', ''),
                 'type': act.get('type', ''),
-                'status': act.get('status', ''),
+                'status': act.get('status', ''),  # Activity-level status (success, failed, pending, etc.)
+                'contact_status': act.get('contact_status', ''),  # Contact-level status (from activities_v2.csv)
                 'summary': act.get('summary') or act.get('notes', ''),
                 'direction': act.get('direction', 'outbound'),
                 'engagement_weight': int(act.get('engagement_weight', 0))
@@ -328,12 +329,19 @@ def get_contact_status(contact: Dict, activities: List[Dict]) -> str:
     """
     Determine contact status based on activities.
     
-    Status priority:
-    - Scheduled: Has upcoming scheduled activity
-    - Responded: Has successful reply/response activity
-    - Engaged: Has recent successful activities
-    - Not Interested: Has failed activities with negative signals
-    - Not Started: No activities yet
+    First checks if activities have a direct 'contact_status' field (from activities_v2.csv),
+    otherwise calculates status from activity types and statuses.
+    
+    Status priority (highest to lowest):
+    1. Deal Closed – Won / Lost (final states)
+    2. Negotiating
+    3. Meeting Completed – Positive / Negative
+    4. Meeting booked
+    5. In-progress
+    6. Responded
+    7. Engaged
+    8. Not Responded
+    9. Not Started
     """
     contact_id = contact.get('contact_id', '')
     contact_activities = [a for a in activities if a.get('contact_id') == contact_id]
@@ -341,29 +349,117 @@ def get_contact_status(contact: Dict, activities: List[Dict]) -> str:
     if not contact_activities:
         return 'Not Started'
     
-    # Check for responses/replies
+    # Check if activities have a direct 'contact_status' field (from activities_v2.csv)
+    # Use the most recent activity's contact_status if available
+    valid_contact_statuses = [
+        'Responded', 'Engaged', 'Not Responded', 'In-progress',
+        'Meeting booked', 'Meeting Completed – Positive', 'Meeting Completed – Negative',
+        'Negotiating', 'Deal Closed – Won', 'Deal Closed – Lost'
+    ]
+    
+    # Create case-insensitive lookup for status matching
+    valid_statuses_lower = {s.lower(): s for s in valid_contact_statuses}
+    
+    # Sort activities by timestamp (most recent first)
+    from datetime import datetime
+    sorted_activities = sorted(
+        contact_activities,
+        key=lambda x: (
+            datetime.fromisoformat(x['timestamp'].replace('T', ' ').split('.')[0])
+            if x.get('timestamp') else datetime.min
+        ),
+        reverse=True
+    )
+    
+    # Check most recent activities for contact_status field
+    for activity in sorted_activities:
+        contact_status_raw = activity.get('contact_status', '').strip()
+        if contact_status_raw:
+            # Case-insensitive matching: normalize and look up
+            contact_status_normalized = contact_status_raw.lower()
+            if contact_status_normalized in valid_statuses_lower:
+                # Return the properly formatted status (with correct capitalization)
+                return valid_statuses_lower[contact_status_normalized]
+    
+    # 1. Check for Deal Closed – Won / Lost (highest priority)
+    deal_closed_won = any(
+        (a.get('type', '').lower() in ['deal_closed', 'deal', 'closed_won'] or
+         a.get('status', '').lower() in ['won', 'closed_won', 'deal_won']) and
+        a.get('status', '').lower() not in ['lost', 'closed_lost', 'deal_lost']
+        for a in contact_activities
+    )
+    deal_closed_lost = any(
+        a.get('type', '').lower() in ['deal_closed', 'deal', 'closed_lost'] or
+        a.get('status', '').lower() in ['lost', 'closed_lost', 'deal_lost']
+        for a in contact_activities
+    )
+    if deal_closed_won:
+        return 'Deal Closed – Won'
+    if deal_closed_lost:
+        return 'Deal Closed – Lost'
+    
+    # 2. Check for Negotiating
+    has_negotiating = any(
+        a.get('type', '').lower() in ['negotiation', 'negotiating', 'proposal'] or
+        a.get('status', '').lower() in ['negotiating', 'negotiation', 'in_negotiation']
+        for a in contact_activities
+    )
+    if has_negotiating:
+        return 'Negotiating'
+    
+    # 3. Check for Meeting Completed – Positive / Negative
+    meeting_completed_positive = any(
+        a.get('type', '').lower() in ['meeting', 'meeting_completed'] and
+        (a.get('status', '').lower() in ['completed', 'success', 'positive'] or
+         'positive' in a.get('summary', '').lower() or
+         'positive' in a.get('outcome', '').lower())
+        for a in contact_activities
+    )
+    meeting_completed_negative = any(
+        a.get('type', '').lower() in ['meeting', 'meeting_completed'] and
+        (a.get('status', '').lower() in ['completed_negative', 'negative'] or
+         'negative' in a.get('summary', '').lower() or
+         'negative' in a.get('outcome', '').lower() or
+         'not interested' in a.get('summary', '').lower())
+        for a in contact_activities
+    )
+    if meeting_completed_positive:
+        return 'Meeting Completed – Positive'
+    if meeting_completed_negative:
+        return 'Meeting Completed – Negative'
+    
+    # 4. Check for Meeting booked
+    meeting_booked = any(
+        a.get('type', '').lower() in ['meeting', 'call', 'demo'] and
+        a.get('status', '').lower() in ['scheduled', 'booked', 'pending', 'confirmed']
+        for a in contact_activities
+    )
+    if meeting_booked:
+        return 'Meeting booked'
+    
+    # 5. Check for In-progress
+    in_progress = any(
+        a.get('status', '').lower() in ['in_progress', 'in-progress', 'active', 'ongoing'] or
+        a.get('type', '').lower() in ['proposal', 'quote', 'rfp']
+        for a in contact_activities
+    )
+    if in_progress:
+        return 'In-progress'
+    
+    # 6. Check for Responded (has successful reply/response activity)
     has_response = any(
-        a.get('type', '').lower() in ['email_reply', 'reply', 'response'] and 
-        a.get('status', '').lower() == 'success'
+        a.get('type', '').lower() in ['email_reply', 'reply', 'response', 'email_response'] and 
+        a.get('status', '').lower() in ['success', 'responded', 'replied']
         for a in contact_activities
     )
     if has_response:
         return 'Responded'
     
-    # Check for scheduled activities
-    has_scheduled = any(
-        a.get('status', '').lower() == 'pending' and 
-        a.get('type', '').lower() in ['call', 'meeting', 'demo']
-        for a in contact_activities
-    )
-    if has_scheduled:
-        return 'Scheduled'
-    
-    # Check for engagement (recent successful activities)
+    # 7. Check for Engaged (recent successful activities)
     from datetime import datetime, timedelta
     week_ago = datetime.now() - timedelta(days=7)
     recent_success = any(
-        a.get('status', '').lower() == 'success' and
+        a.get('status', '').lower() in ['success', 'engaged'] and
         a.get('timestamp') and
         datetime.fromisoformat(a['timestamp'].replace('T', ' ').split('.')[0]) >= week_ago
         for a in contact_activities
@@ -371,13 +467,13 @@ def get_contact_status(contact: Dict, activities: List[Dict]) -> str:
     if recent_success:
         return 'Engaged'
     
-    # Check for not interested (multiple failed attempts)
-    failed_count = sum(1 for a in contact_activities if a.get('status', '').lower() == 'failed')
-    if failed_count >= 3:
-        return 'Not Interested'
+    # 8. Not Responded (has activities but no responses)
+    has_activities_no_response = not has_response and len(contact_activities) > 0
+    if has_activities_no_response:
+        return 'Not Responded'
     
-    # Default to engaged if has any activities
-    return 'Engaged'
+    # 9. Default fallback (should not reach here if logic is correct)
+    return 'Not Started'
 
 
 def get_contact_channels(contact_id: str, activities: List[Dict]) -> List[str]:

@@ -4,6 +4,19 @@ import PlatformHeader from '@/components/PlatformHeader';
 
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
+// Default client metadata used ONLY when the user implicitly requests ICP strategy
+// via natural-language prompts (e.g., "ICP strategy", "ideal customer profile").
+// This keeps the UI simple while still satisfying the backend requirement that
+// both `include_icp: true` and a `client` object must be present.
+const DEFAULT_CLIENT = {
+  name: 'XLR8 Default Client',
+  type: 'Agency',
+  focus_industry: 'Energy',
+  client_industry: 'Utilities',
+  target_regions: ['US', 'EU'],
+  target_audience: ['CFOs', 'Heads of Sustainability'],
+};
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'error';
@@ -69,17 +82,37 @@ export default function ResearchPage() {
     setIsSearching(true);
 
     try {
+      // Detect natural-language intent for ICP strategy.
+      // IMPORTANT: This only toggles a flag; the backend still enforces that
+      // ICP strategy runs ONLY when include_icp === true AND client is present.
+      const normalized = topic.toLowerCase();
+      const wantsICP =
+        /\bicp\b/.test(normalized) ||
+        normalized.includes('ideal customer profile') ||
+        normalized.includes('persona strategy') ||
+        normalized.includes('icp strategy') ||
+        normalized.includes('icp insights');
+
+      // Let backend auto-detect intent (use_case, include_insights, region)
+      // No need to pass these explicitly - backend will detect from query text
+      const requestBody: any = {
+        topics: [topic],
+        window: 'week',
+        k: 5,
+        strict: true,
+      };
+
+      if (wantsICP) {
+        requestBody.include_icp = true;
+        requestBody.client = DEFAULT_CLIENT;
+      }
+
       const response = await fetch(`${BACKEND_BASE_URL}/research/v1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          topics: [topic],
-          window: 'week',
-          k: 5,
-          strict: true,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -284,6 +317,11 @@ export default function ResearchPage() {
   );
 }
 
+// Helper to check if use case is ICP
+const isICPUseCase = (useCase?: string | null): boolean => {
+  return useCase === "icp_companies" || useCase === "icp_profiles";
+};
+
 // Result Card Component - Renders the research result
 function ResultCard({ result }: { result: any }) {
   console.log('[XLR8 Debug] ResultCard rendering with result:', result);
@@ -293,6 +331,10 @@ function ResultCard({ result }: { result: any }) {
   const whyItMatters = result.why_it_matters;
   const tags = result.tags || {};
   const insights = result.insights;
+  const icpStrategy = result.icp_strategy;
+  const useCase = result.use_case as string | undefined;
+  const isICP = isICPUseCase(useCase);
+  const useCaseOutput = result.use_case_output;
 
   const companies = Array.isArray(tags.companies) ? tags.companies : tags.companies ? [tags.companies] : [];
   const regions = Array.isArray(tags.regions) ? tags.regions : tags.regions ? [tags.regions] : [];
@@ -341,6 +383,20 @@ function ResultCard({ result }: { result: any }) {
         </div>
       )}
 
+      {/* ICP-specific output: Show for ICP use cases ABOVE the normal bullets/insights */}
+      {isICP && useCaseOutput && (
+        <ICPOutputSection useCase={useCase} useCaseOutput={useCaseOutput} />
+      )}
+
+      {/* Fallback message if ICP use case but no output */}
+      {isICP && !useCaseOutput && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            Couldn't extract structured ICP output from the articles. Try rephrasing your question or widening the time window.
+          </p>
+        </div>
+      )}
+
       {/* Bullets */}
       {bullets.length > 0 && (
         <div className="space-y-2">
@@ -371,9 +427,142 @@ function ResultCard({ result }: { result: any }) {
         </div>
       )}
 
-      {/* Insights */}
-      {insights && !insights.error && (
+      {/* Market Insights: ONLY show when not ICP use case */}
+      {!isICP && insights && !insights.error && (
         <InsightsSection insights={insights} links={links} />
+      )}
+
+      {/* ICP Strategy (optional, only when backend returns icp_strategy) */}
+      {icpStrategy && (
+        <div className="mt-5 pt-5 border-t border-gray-200">
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+            <h4 className="text-2xl font-semibold text-slate-900 mb-2">ICP Strategy</h4>
+
+            {/* ICP Profile */}
+            {icpStrategy.icp_profile && (
+              <div>
+                <h5 className="text-sm font-semibold text-slate-900 mb-1.5">ICP Profile</h5>
+                <p className="text-base text-slate-600 leading-relaxed">
+                  {icpStrategy.icp_profile.description}
+                </p>
+                <p className="text-sm text-slate-500 mt-1">
+                  {icpStrategy.icp_profile.industry && (
+                    <>Industry: {icpStrategy.icp_profile.industry}. </>
+                  )}
+                  {icpStrategy.icp_profile.region && <>Region: {icpStrategy.icp_profile.region}.</>}
+                </p>
+              </div>
+            )}
+
+            {/* Helper to render bullet-style ICP arrays */}
+            {Array.isArray(icpStrategy.icp_pains) && icpStrategy.icp_pains.length > 0 && (
+              <div>
+                <h5 className="text-sm font-semibold text-slate-900 mb-1.5">ICP Pains</h5>
+                <ul className="list-none space-y-1">
+                  {icpStrategy.icp_pains.map((item: any, idx: number) => (
+                    <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                      {item.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {Array.isArray(icpStrategy.icp_triggers) && icpStrategy.icp_triggers.length > 0 && (
+              <div>
+                <h5 className="text-sm font-semibold text-slate-900 mb-1.5">ICP Triggers</h5>
+                <ul className="list-none space-y-1">
+                  {icpStrategy.icp_triggers.map((item: any, idx: number) => (
+                    <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                      {item.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {Array.isArray(icpStrategy.icp_jobs_to_be_done) &&
+              icpStrategy.icp_jobs_to_be_done.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-semibold text-slate-900 mb-1.5">
+                    ICP Jobs To Be Done
+                  </h5>
+                  <ul className="list-none space-y-1">
+                    {icpStrategy.icp_jobs_to_be_done.map((item: any, idx: number) => (
+                      <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(icpStrategy.icp_recommendations) &&
+              icpStrategy.icp_recommendations.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-semibold text-slate-900 mb-1.5">
+                    ICP Recommendations & Plays
+                  </h5>
+                  <ul className="list-none space-y-1">
+                    {icpStrategy.icp_recommendations.map((item: any, idx: number) => (
+                      <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                        <span className="font-medium text-slate-900">
+                          {item.play_name || 'Play'}:
+                        </span>{' '}
+                        {item.angle}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(icpStrategy.product_opportunities) &&
+              icpStrategy.product_opportunities.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-semibold text-slate-900 mb-1.5">
+                    Product Opportunities
+                  </h5>
+                  <ul className="list-none space-y-1">
+                    {icpStrategy.product_opportunities.map((item: any, idx: number) => (
+                      <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(icpStrategy.workflow_impact) &&
+              icpStrategy.workflow_impact.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-semibold text-slate-900 mb-1.5">
+                    Workflow Impact
+                  </h5>
+                  <ul className="list-none space-y-1">
+                    {icpStrategy.workflow_impact.map((item: any, idx: number) => (
+                      <li key={idx} className="text-base text-slate-600 leading-relaxed">
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {icpStrategy.decision_framework && (
+              <div>
+                <h5 className="text-sm font-semibold text-slate-900 mb-1.5">
+                  Decision Framework
+                </h5>
+                <p className="text-base text-slate-600 leading-relaxed">
+                  <span className="font-medium">If</span> {icpStrategy.decision_framework.if},{' '}
+                  <span className="font-medium">then</span> {icpStrategy.decision_framework.then}.{' '}
+                  <span className="font-medium">Because</span>{' '}
+                  {icpStrategy.decision_framework.because}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Sources */}
@@ -427,6 +616,136 @@ function ResultCard({ result }: { result: any }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ICP Output Section Component - Renders ICP-specific output
+function ICPOutputSection({ useCase, useCaseOutput }: { useCase: string | undefined; useCaseOutput: any }) {
+  // Handle error case
+  if (useCaseOutput.error) {
+    return (
+      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-sm text-red-800">
+          Error generating ICP output: {useCaseOutput.message || useCaseOutput.error}
+        </p>
+      </div>
+    );
+  }
+
+  // ICP Companies rendering
+  if (useCase === "icp_companies" && useCaseOutput.companies && Array.isArray(useCaseOutput.companies)) {
+    return (
+      <section className="mt-4 rounded-xl border bg-white p-4">
+        <h3 className="text-lg font-semibold mb-3">Ideal Buyer Companies</h3>
+        <div className="space-y-3">
+          {useCaseOutput.companies.map((co: any, idx: number) => (
+            <div key={co.name || idx} className="border rounded-lg p-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-medium">{co.name}</div>
+                  {co.industry && (
+                    <div className="text-sm text-gray-600">{co.industry}</div>
+                  )}
+                </div>
+                {co.approx_size && (
+                  <span className="text-xs rounded-full bg-gray-100 px-2 py-1">
+                    {co.approx_size}
+                  </span>
+                )}
+              </div>
+              {co.location && (
+                <div className="mt-1 text-xs text-gray-500">{co.location}</div>
+              )}
+              {co.why_target && (
+                <p className="mt-2 text-sm text-gray-800">{co.why_target}</p>
+              )}
+              {co.source && (
+                <a
+                  href={co.source}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block text-xs text-blue-600 underline"
+                >
+                  Source
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // ICP Profiles rendering
+  if (useCase === "icp_profiles" && useCaseOutput.companies && Array.isArray(useCaseOutput.companies)) {
+    return (
+      <section className="mt-4 rounded-xl border bg-white p-4">
+        <h3 className="text-lg font-semibold mb-3">ICP Titles & Leaders</h3>
+        <div className="space-y-4">
+          {useCaseOutput.companies.map((co: any, idx: number) => (
+            <div key={co.name || idx} className="border rounded-lg p-3">
+              <div className="font-medium">{co.name}</div>
+
+              {co.icp_titles && Array.isArray(co.icp_titles) && co.icp_titles.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs font-semibold text-gray-600">
+                    ICP Titles
+                  </div>
+                  <ul className="mt-1 list-disc pl-5 text-sm text-gray-800">
+                    {co.icp_titles.map((t: string, tIdx: number) => (
+                      <li key={tIdx}>{t}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {co.leaders && Array.isArray(co.leaders) && co.leaders.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs font-semibold text-gray-600">
+                    Named Leaders
+                  </div>
+                  <ul className="mt-1 space-y-1 text-sm text-gray-800">
+                    {co.leaders.map((l: any, lIdx: number) => (
+                      <li key={`${l.name}-${l.title}-${lIdx}`}>
+                        <span className="font-medium">{l.name}</span>
+                        {l.title && ` – ${l.title}`}
+                        {l.is_icp_title && (
+                          <span className="ml-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                            ICP
+                          </span>
+                        )}
+                        {l.reason && (
+                          <div className="text-xs text-gray-600">{l.reason}</div>
+                        )}
+                        {l.source && (
+                          <a
+                            href={l.source}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] text-blue-600 underline"
+                          >
+                            Source
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // Fallback for unknown ICP use case or missing data
+  return (
+    <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+      <p className="text-sm text-gray-600">
+        ICP output format not recognized for use case: {useCase}
+      </p>
     </div>
   );
 }

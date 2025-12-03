@@ -840,7 +840,15 @@ function updateContactsTable(contacts) {
     
     contactsTableBody.innerHTML = contacts.map(contact => {
         const status = contact.status || 'Not Started';
-        const statusClass = `contact-status--${status.toLowerCase().replace(' ', '-')}`;
+        // Convert status to CSS class: lowercase, replace spaces with hyphens, em dashes with triple hyphens
+        // Handle: "Deal Closed – Won" -> "deal-closed---won"
+        // Use placeholder to preserve triple hyphens during space replacement
+        let statusClass = status.toLowerCase()
+            .replace(/\s*[–—]\s*/g, '___TRIPLE___')  // Replace em dash and surrounding spaces with placeholder
+            .replace(/\s+/g, '-')                     // Replace remaining spaces with hyphens
+            .replace(/-+/g, '-')                      // Collapse multiple consecutive hyphens
+            .replace(/___TRIPLE___/g, '---');         // Restore triple hyphens
+        statusClass = `contact-status--${statusClass}`;
         const channels = contact.channels || [];
         const lastContacted = formatLastContacted(contact.last_contacted);
         
@@ -874,26 +882,26 @@ function updateContactsTable(contacts) {
             : '<span class="muted">None</span>';
         
         return `
-            <tr>
-                <td>
-                    <input type="checkbox" class="contact-row__checkbox" data-contact-id="${escapeHtml(contact.contact_id)}">
+            <tr class="bg-white shadow-sm rounded-xl align-middle">
+                <td class="pl-6 pr-3 py-3 align-middle">
+                    <input type="checkbox" class="w-4 h-4 contact-row__checkbox" data-contact-id="${escapeHtml(contact.contact_id)}">
                 </td>
-                <td>
-                    <div class="contact-row__name">${escapeHtml(contact.name)}</div>
-                    <div class="contact-row__title">${escapeHtml(contact.title || '')}</div>
+                <td class="pl-6 pr-3 py-3 align-middle">
+                    <div class="font-medium text-slate-900">${escapeHtml(contact.name)}</div>
+                    <div class="text-sm text-slate-500 mt-0.5">${escapeHtml(contact.title || '')}</div>
                 </td>
-                <td class="contact-row__company">${escapeHtml(contact.company_id || '')}</td>
-                <td>
-                    <span class="contact-status ${statusClass}">${escapeHtml(status)}</span>
+                <td class="px-3 py-3 text-slate-600 align-middle">${escapeHtml(contact.company_id || '')}</td>
+                <td class="px-3 py-3 align-middle">
+                    <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium contact-status ${statusClass}">${escapeHtml(status)}</span>
                 </td>
-                <td>
-                    <div class="contact-channels">${channelsHTML}</div>
+                <td class="px-3 py-3 align-middle">
+                    <div class="flex flex-wrap items-center gap-2 contact-channels">${channelsHTML}</div>
                 </td>
-                <td>
+                <td class="px-3 pr-6 py-3 text-slate-500 whitespace-nowrap align-middle">
                     <span class="contact-last-contacted ${lastContacted.never ? 'contact-last-contacted--never' : ''}">${escapeHtml(lastContacted.text)}</span>
                 </td>
-                <td>
-                    <button class="contact-row__menu-btn" aria-label="More options"></button>
+                <td class="py-3 px-4 align-middle">
+                    <button class="contact-row__menu-btn text-slate-400 hover:text-slate-600" aria-label="More options">⋯</button>
                 </td>
             </tr>
         `;

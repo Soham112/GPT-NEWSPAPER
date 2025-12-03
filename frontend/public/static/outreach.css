@@ -899,6 +899,66 @@ body {
   color: var(--danger);
 }
 
+/* New status styles */
+.contact-status--not-responded {
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+}
+
+.contact-status--in-progress {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563EB;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.contact-status--meeting-booked {
+  background: rgba(139, 92, 246, 0.15);
+  color: #7C3AED;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.contact-status.contact-status--meeting-completed---positive,
+.contact-status--meeting-completed---positive {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.contact-status.contact-status--meeting-completed---negative,
+.contact-status--meeting-completed---negative {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #DC2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.contact-status--negotiating {
+  background: rgba(168, 85, 247, 0.15);
+  color: #9333EA;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.contact-status.contact-status--deal-closed---won,
+.contact-status--deal-closed---won {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #047857 !important;
+  border: 2px solid rgba(16, 185, 129, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.contact-status.contact-status--deal-closed---lost,
+.contact-status--deal-closed---lost {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #B91C1C !important;
+  border: 2px solid rgba(239, 68, 68, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+/* Fallback for statuses without specific styling */
+.contact-status:not([class*="contact-status--"]) {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--muted);
+}
+
 .contact-channels {
   display: flex;
   gap: 0.5rem;

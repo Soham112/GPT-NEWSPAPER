@@ -5,223 +5,256 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marketing Campaigns - Outreach Agent</title>
     <link rel="stylesheet" href="static/outreach.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <header class="platform-header">
-        <div class="platform-header__inner">
-            <a href="/" class="platform-header__logo">
-                <span class="platform-header__logo-mark">X</span>
-                <span class="platform-header__logo-text">
-                    <strong>XLR8</strong>
-                    <small>AI Workspace</small>
-                </span>
+    <!-- Global Navigation Header (matching Research Agent) -->
+    <header class="w-full border-b border-gray-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80 sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-3 no-underline">
+                <div class="h-10 w-10 rounded-xl bg-blue-600 text-white font-semibold flex items-center justify-center text-base">
+                    X
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-base font-semibold text-slate-900">XLR8</span>
+                    <span class="text-xs text-slate-500">AI Workspace</span>
+                </div>
             </a>
-            <nav class="platform-header__nav">
-                <a href="/">Home</a>
-                <a href="/research">Research Agent</a>
-                <a href="/outreach.html" class="active">Outreach Agent</a>
-                <a href="/integrations">Integrations</a>
-                <a href="/settings">Settings</a>
+
+            <nav class="flex flex-wrap lg:flex-nowrap items-center gap-4 text-sm font-medium text-slate-600">
+                <a href="/" class="text-slate-600 hover:text-slate-900 transition-colors">Home</a>
+                <a href="/research" class="text-slate-600 hover:text-slate-900 transition-colors">Research Agent</a>
+                <a href="/outreach.html" class="text-slate-900 transition-colors">Outreach Agent</a>
+                <a href="/integrations" class="text-slate-600 hover:text-slate-900 transition-colors">Integrations</a>
+                <a href="/settings" class="text-slate-600 hover:text-slate-900 transition-colors">Settings</a>
             </nav>
-            <div class="platform-header__status">
-                <button class="platform-header__live">
-                    <span class="platform-header__live-dot"></span>
+
+            <div class="flex items-center gap-3">
+                <button class="hidden md:inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-gray-300 transition-colors">
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                     Live
                 </button>
-                <div class="platform-header__avatar">SP</div>
+                <div class="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                    SP
+                </div>
             </div>
         </div>
     </header>
-    <div class="outreach-container">
-        <!-- Page Header -->
-        <div class="outreach-page-header">
-            <h1 class="outreach-page-header__title">Outreach Agent</h1>
-            <p class="outreach-page-header__subtitle">Marketing Campaigns Dashboard</p>
-        </div>
 
-        <!-- Client Selection Card -->
-        <div class="client-selection-card">
-            <div class="client-selection-card__left">
-                <svg class="client-selection-card__icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 5.83333C2.5 4.91286 3.24619 4.16667 4.16667 4.16667H15.8333C16.7538 4.16667 17.5 4.91286 17.5 5.83333V14.1667C17.5 15.0871 16.7538 15.8333 15.8333 15.8333H4.16667C3.24619 15.8333 2.5 15.0871 2.5 14.1667V5.83333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2.5 7.5H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M6.66667 10.8333H13.3333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <div class="client-selection-card__label-group">
-                    <label for="clientSelect" class="client-selection-card__label">Current Client</label>
-                    <select id="clientSelect" class="client-select">
-                        <option value="">Select a client...</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-add-client" id="addClientBtn">
-                + Add Client
-            </button>
-        </div>
-
-        <!-- Company Dashboard Section -->
-        <div class="company-dashboard" id="companyDashboard" style="display: none;">
-            <div class="company-dashboard__accent"></div>
-            <div class="company-dashboard__content">
-                <h2 class="company-dashboard__title" id="companyDashboardTitle">Company Dashboard</h2>
-                <p class="company-dashboard__subtitle" id="companyDashboardSubtitle">Viewing outreach data for Company</p>
-            </div>
-        </div>
-
-        <!-- KPI Tiles -->
-        <div class="kpis">
-            <div class="kpi kpi--clickable" data-kpi="linkedin">
-                <div class="kpi__label">LinkedIn Outreach</div>
-                <div class="kpi__value" id="kpi-linkedin">-</div>
-                <div class="kpi__trend" id="kpi-linkedin-trend"></div>
-            </div>
-            <div class="kpi kpi--clickable" data-kpi="email">
-                <div class="kpi__label">Email Campaigns</div>
-                <div class="kpi__value" id="kpi-email">-</div>
-                <div class="kpi__trend" id="kpi-email-trend"></div>
-            </div>
-            <div class="kpi kpi--clickable" data-kpi="calls">
-                <div class="kpi__label">Calls Placed</div>
-                <div class="kpi__value" id="kpi-calls">-</div>
-                <div class="kpi__trend" id="kpi-calls-trend"></div>
-            </div>
-            <div class="kpi kpi--clickable" data-kpi="hubspot">
-                <div class="kpi__label">HubSpot Activities</div>
-                <div class="kpi__value" id="kpi-hubspot">-</div>
-                <div class="kpi__trend" id="kpi-hubspot-trend"></div>
-            </div>
-        </div>
-
-        <!-- Client Summary Snapshot -->
-        <div class="client-summary" id="clientSummary" style="display: none;">
-            <h3 class="client-summary__title" id="clientSummaryTitle">Client at a glance:</h3>
-            <div class="client-summary__grid">
-                <div class="client-summary__item">
-                    <span class="client-summary__value" id="summary-decision-makers">-</span>
-                    <span class="client-summary__label">decision makers engaged</span>
-                </div>
-                <div class="client-summary__item">
-                    <span class="client-summary__value" id="summary-activities-week">-</span>
-                    <span class="client-summary__label">new activities this week</span>
-                </div>
-                <div class="client-summary__item">
-                    <span class="client-summary__value" id="summary-pending">-</span>
-                    <span class="client-summary__label">pending follow-ups</span>
-                </div>
-                <div class="client-summary__item">
-                    <span class="client-summary__value" id="summary-revived">-</span>
-                    <span class="client-summary__label">cold leads revived</span>
-                </div>
-                <div class="client-summary__item client-summary__item--score">
-                    <span class="client-summary__label">Engagement Score:</span>
-                    <span class="client-summary__value" id="summary-score">-</span>
-                    <span class="client-summary__label">/ 100</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Contacts Section -->
-        <div class="top-contacts" id="topContacts" style="display: none;">
-            <div class="top-contacts__header">
-                <h3 class="top-contacts__title">Top Contacts Engaged</h3>
-                <a href="/contacts.html" class="btn btn--ghost btn--small" id="viewAllContactsBtn" style="display: none;">View All Contacts →</a>
-            </div>
-            <div class="top-contacts__list" id="topContactsList"></div>
-        </div>
-
-        <!-- Contacts Table Section -->
-        <div class="contacts-table-section" id="contactsTableSection" style="display: none;">
-            <div class="contacts-table-section__header">
-                <h3 class="contacts-table-section__title">Contacts</h3>
-                <a href="/contacts.html" class="btn btn--primary btn--small">View All Contacts →</a>
-            </div>
-            <div class="contacts-table-container">
-                <table class="contacts-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px;">
-                                <input type="checkbox" id="selectAllContacts" aria-label="Select all contacts">
-                            </th>
-                            <th class="contacts-table__sortable">
-                                Name
-                                <span class="sort-indicator">▲</span>
-                            </th>
-                            <th>Company</th>
-                            <th>Status</th>
-                            <th>Channels</th>
-                            <th>Last Contacted</th>
-                            <th style="width: 40px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="contactsTableBody">
-                        <tr>
-                            <td colspan="7" class="contacts-table__empty">Loading contacts...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="outreach-main">
-            <!-- Recent Activity -->
-            <div class="activity-section">
-                <div class="activity-section__header">
-                    <h3>Recent Activity</h3>
-                    <div class="activity-filters">
-                        <div class="filter-group">
-                            <button class="filter-btn filter-btn--active" data-filter="channel" data-value="">All</button>
-                            <button class="filter-btn" data-filter="channel" data-value="Call">Calls</button>
-                            <button class="filter-btn" data-filter="channel" data-value="Email">Emails</button>
-                            <button class="filter-btn" data-filter="channel" data-value="LinkedIn">LinkedIn</button>
-                            <button class="filter-btn" data-filter="channel" data-value="HubSpot">HubSpot</button>
+    <!-- Outer wrapper: Left scrolls, Right fixed -->
+    <div class="min-h-screen flex flex-col lg:flex-row bg-[#f5f5f7]">
+        <!-- LEFT: Main dashboard content (scrollable) -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Content Header: Title/Subtitle on left, Client Selector on right -->
+            <div class="max-w-[1400px] mx-auto w-full px-6 lg:px-10 py-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <!-- Left: Title and Subtitle -->
+                    <div>
+                        <h1 class="text-4xl font-bold tracking-tight text-slate-900 mb-1">Outreach Agent</h1>
+                        <p class="text-base text-slate-600">Marketing Campaigns Dashboard</p>
+                    </div>
+                    
+                    <!-- Right: Client Selection - Fixed Alignment -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-end gap-3">
+                        <!-- Icon + Label + Select -->
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-slate-600 flex-shrink-0" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.5 5.83333C2.5 4.91286 3.24619 4.16667 4.16667 4.16667H15.8333C16.7538 4.16667 17.5 4.91286 17.5 5.83333V14.1667C17.5 15.0871 16.7538 15.8333 15.8333 15.8333H4.16667C3.24619 15.8333 2.5 15.0871 2.5 14.1667V5.83333Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2.5 7.5H17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M6.66667 10.8333H13.3333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="flex flex-col">
+                                <label for="clientSelect" class="text-xs font-medium text-slate-600 mb-1">Current Client</label>
+                                <select id="clientSelect" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px]">
+                                    <option value="">Select a client...</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <button class="filter-btn filter-btn--active" data-filter="status" data-value="">All</button>
-                            <button class="filter-btn" data-filter="status" data-value="Success">Success</button>
-                            <button class="filter-btn" data-filter="status" data-value="Pending">Pending</button>
-                            <button class="filter-btn" data-filter="status" data-value="Failed">Failed</button>
-                        </div>
-                        <div class="filter-group">
-                            <button class="filter-btn filter-btn--active" data-filter="days" data-value="">All Time</button>
-                            <button class="filter-btn" data-filter="days" data-value="7">Last 7 days</button>
-                            <button class="filter-btn" data-filter="days" data-value="30">Last 30 days</button>
-                        </div>
+                        <!-- + Add Client Button -->
+                        <button class="btn-add-client px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap" id="addClientBtn">
+                            + Add Client
+                        </button>
                     </div>
                 </div>
-                <div id="activityList" class="activity-list activity-list--timeline">
-                    <p class="muted">Select a client to view activities</p>
-                </div>
             </div>
 
-            <!-- Chat Panel -->
-            <div class="chat-panel">
-                <div class="chat" id="chatMessages">
-                    <div class="bubble bubble--meta">
-                        Welcome to Marketing Campaigns! Ask me about LinkedIn outreach, email campaigns, calls, or HubSpot activities.
+            <!-- Main Content Area -->
+            <div class="max-w-[1400px] mx-auto w-full px-6 lg:px-10 pb-6">
+                <!-- Dashboard Content -->
+                <div class="space-y-6">
+
+                <!-- Company Dashboard Section -->
+                <div class="company-dashboard" id="companyDashboard" style="display: none;">
+                    <div class="company-dashboard__accent"></div>
+                    <div class="company-dashboard__content">
+                        <h2 class="company-dashboard__title" id="companyDashboardTitle">Company Dashboard</h2>
+                        <p class="company-dashboard__subtitle" id="companyDashboardSubtitle">Viewing outreach data for Company</p>
                     </div>
                 </div>
 
-                <!-- Composer -->
-                <div class="composer">
-                    <input 
-                        type="text" 
-                        id="messageInput" 
-                        class="composer__input" 
+                <!-- KPI Tiles -->
+                <div class="kpis">
+                    <div class="kpi kpi--clickable" data-kpi="linkedin">
+                        <div class="kpi__label">LinkedIn Outreach</div>
+                        <div class="kpi__value" id="kpi-linkedin">-</div>
+                        <div class="kpi__trend" id="kpi-linkedin-trend"></div>
+                    </div>
+                    <div class="kpi kpi--clickable" data-kpi="email">
+                        <div class="kpi__label">Email Campaigns</div>
+                        <div class="kpi__value" id="kpi-email">-</div>
+                        <div class="kpi__trend" id="kpi-email-trend"></div>
+                    </div>
+                    <div class="kpi kpi--clickable" data-kpi="calls">
+                        <div class="kpi__label">Calls Placed</div>
+                        <div class="kpi__value" id="kpi-calls">-</div>
+                        <div class="kpi__trend" id="kpi-calls-trend"></div>
+                    </div>
+                    <div class="kpi kpi--clickable" data-kpi="hubspot">
+                        <div class="kpi__label">HubSpot Activities</div>
+                        <div class="kpi__value" id="kpi-hubspot">-</div>
+                        <div class="kpi__trend" id="kpi-hubspot-trend"></div>
+                    </div>
+                </div>
+
+                <!-- Client Summary Snapshot -->
+                <div class="client-summary" id="clientSummary" style="display: none;">
+                    <h3 class="client-summary__title" id="clientSummaryTitle">Client at a glance:</h3>
+                    <div class="client-summary__grid">
+                        <div class="client-summary__item">
+                            <span class="client-summary__value" id="summary-decision-makers">-</span>
+                            <span class="client-summary__label">decision makers engaged</span>
+                        </div>
+                        <div class="client-summary__item">
+                            <span class="client-summary__value" id="summary-activities-week">-</span>
+                            <span class="client-summary__label">new activities this week</span>
+                        </div>
+                        <div class="client-summary__item">
+                            <span class="client-summary__value" id="summary-pending">-</span>
+                            <span class="client-summary__label">pending follow-ups</span>
+                        </div>
+                        <div class="client-summary__item">
+                            <span class="client-summary__value" id="summary-revived">-</span>
+                            <span class="client-summary__label">cold leads revived</span>
+                        </div>
+                        <div class="client-summary__item client-summary__item--score">
+                            <span class="client-summary__label">Engagement Score:</span>
+                            <span class="client-summary__value" id="summary-score">-</span>
+                            <span class="client-summary__label">/ 100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Contacts Section -->
+                <div class="top-contacts" id="topContacts" style="display: none;">
+                    <div class="top-contacts__header">
+                        <h3 class="top-contacts__title">Top Contacts Engaged</h3>
+                        <a href="/contacts.html" class="btn btn--ghost btn--small" id="viewAllContactsBtn" style="display: none;">View All Contacts →</a>
+                    </div>
+                    <div class="top-contacts__list" id="topContactsList"></div>
+                </div>
+
+                <!-- Contacts Table Section -->
+                <div class="contacts-table-section" id="contactsTableSection" style="display: none;">
+                    <div class="contacts-table-section__header">
+                        <h3 class="contacts-table-section__title">Contacts</h3>
+                        <a href="/contacts.html" class="btn btn--primary btn--small">View All Contacts →</a>
+                    </div>
+                    <div class="contacts-table-container overflow-x-auto">
+                        <table class="w-full border-separate border-spacing-y-2 text-sm">
+                            <thead>
+                                <tr class="text-xs text-slate-500 font-medium">
+                                    <th class="w-[40px] text-left pl-6 pr-3 py-2">
+                                        <input type="checkbox" id="selectAllContacts" aria-label="Select all contacts" class="w-4 h-4">
+                                    </th>
+                                    <th class="text-left pl-6 pr-3 py-2">Name</th>
+                                    <th class="text-left px-3 py-2">Company</th>
+                                    <th class="text-left px-3 py-2">Status</th>
+                                    <th class="text-left px-3 py-2">Channels</th>
+                                    <th class="text-left px-3 pr-6 py-2">Last Contacted</th>
+                                    <th class="w-[40px]"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="contactsTableBody" class="align-middle">
+                                <tr>
+                                    <td colspan="7" class="contacts-table__empty py-8 text-center text-slate-500">Loading contacts...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-section">
+                    <div class="activity-section__header">
+                        <h3>Recent Activity</h3>
+                        <div class="activity-filters">
+                            <div class="filter-group">
+                                <button class="filter-btn filter-btn--active" data-filter="channel" data-value="">All</button>
+                                <button class="filter-btn" data-filter="channel" data-value="Call">Calls</button>
+                                <button class="filter-btn" data-filter="channel" data-value="Email">Emails</button>
+                                <button class="filter-btn" data-filter="channel" data-value="LinkedIn">LinkedIn</button>
+                                <button class="filter-btn" data-filter="channel" data-value="HubSpot">HubSpot</button>
+                            </div>
+                            <div class="filter-group">
+                                <button class="filter-btn filter-btn--active" data-filter="status" data-value="">All</button>
+                                <button class="filter-btn" data-filter="status" data-value="Success">Success</button>
+                                <button class="filter-btn" data-filter="status" data-value="Pending">Pending</button>
+                                <button class="filter-btn" data-filter="status" data-value="Failed">Failed</button>
+                            </div>
+                            <div class="filter-group">
+                                <button class="filter-btn filter-btn--active" data-filter="days" data-value="">All Time</button>
+                                <button class="filter-btn" data-filter="days" data-value="7">Last 7 days</button>
+                                <button class="filter-btn" data-filter="days" data-value="30">Last 30 days</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="activityList" class="activity-list activity-list--timeline">
+                        <p class="muted">Select a client to view activities</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT: Fixed chat column -->
+        <aside class="w-full lg:w-[380px] xl:w-[420px] border-l border-gray-200 bg-white flex flex-col flex-shrink-0 h-screen">
+            <div class="flex flex-col h-full">
+                <!-- Header -->
+                <div class="border-b border-gray-200 px-4 py-3 text-sm font-medium text-slate-700 flex-shrink-0">
+                    Outreach Assistant
+                </div>
+
+                <!-- Scrollable messages -->
+                <div class="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
+                    <div class="chat" id="chatMessages">
+                        <div class="bubble bubble--meta">
+                            Welcome to Marketing Campaigns! Ask me about LinkedIn outreach, email campaigns, calls, or HubSpot activities.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fixed input at bottom -->
+                <form
+                    class="border-t border-gray-200 px-3 py-3 bg-white flex items-center gap-2 flex-shrink-0"
+                    onsubmit="event.preventDefault(); document.getElementById('sendButton').click();"
+                >
+                    <input
+                        type="text"
+                        id="messageInput"
+                        class="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ask about outreach metrics, compare channels, analyze engagement..."
                         autocomplete="off"
-                    >
-                    <button 
-                        type="button" 
-                        id="sendButton" 
-                        class="composer__button"
+                    />
+                    <button
+                        type="button"
+                        id="sendButton"
+                        class="px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors flex-shrink-0"
                         aria-label="Send message"
                     >
                         Send
                     </button>
-                </div>
+                </form>
             </div>
-        </div>
+        </aside>
     </div>
 
     <!-- KPI Modal -->

@@ -3,6 +3,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from backend.langgraph_agent import MasterAgent
 from backend.cost_tracker import cost_tracker
+from backend.intent_classifier import detect_query_intent
 import uuid
 
 # Load environment variables BEFORE importing blueprint
@@ -101,7 +102,45 @@ def research_v1():
         k = int(data.get("k", 5))
         strict = data.get("strict", True)
         client = data.get("client")  # Optional client metadata for ICP-aware insights
-        include_insights = data.get("include_insights", True)  # Default to True
+        # New: ICP strategy is opt-in and disabled by default
+        include_icp = bool(data.get("include_icp", False))
+        
+        # Automatic intent detection: if use_case or include_insights are not explicitly provided,
+        # detect them from the first topic
+        # Note: If client explicitly passes include_insights, we do not override it, even for ICP-related use_cases.
+        # This allows advanced users to force insights generation even for ICP queries.
+        explicit_use_case = data.get("use_case")
+        explicit_include_insights = data.get("include_insights")
+        explicit_region = data.get("region")
+        # LEADERSHIP_MODE START
+        explicit_is_leadership_query = data.get("is_leadership_query")
+        # LEADERSHIP_MODE END
+        
+        # Detect intent if either use_case or include_insights is missing
+        if explicit_use_case is None or explicit_include_insights is None:
+            # Detect intent from the first topic
+            first_topic = topics[0] if topics else ""
+            detected_intent = detect_query_intent(first_topic)
+            
+            # Use detected values if not explicitly provided, otherwise use explicit values
+            use_case = explicit_use_case if explicit_use_case is not None else detected_intent.use_case
+            include_insights = explicit_include_insights if explicit_include_insights is not None else detected_intent.include_insights
+            region = explicit_region if explicit_region is not None else detected_intent.region
+            # Leadership flag is always derived from detected intent unless explicitly provided
+            is_leadership_query = (
+                bool(explicit_is_leadership_query)
+                if explicit_is_leadership_query is not None
+                else bool(getattr(detected_intent, "is_leadership_query", False))
+            )
+            company = getattr(detected_intent, "company", None)
+        else:
+            # Both use_case and include_insights explicitly provided, use them as-is
+            use_case = explicit_use_case
+            include_insights = explicit_include_insights
+            region = explicit_region if explicit_region is not None else "US"
+            # When caller fully specifies use_case/include_insights, default leadership flag to False
+            is_leadership_query = bool(explicit_is_leadership_query) if explicit_is_leadership_query is not None else False
+            company = None
         
         # Generate request ID for cost tracking
         request_id = str(uuid.uuid4())
@@ -117,6 +156,13 @@ def research_v1():
             strict=strict,
             client=client,
             include_insights=include_insights,
+            include_icp=include_icp,
+            use_case=use_case,
+            region=region,
+            # LEADERSHIP_MODE START
+            is_leadership_query=is_leadership_query,
+            company=company,
+            # LEADERSHIP_MODE END
         )
         
         # Add request metadata
